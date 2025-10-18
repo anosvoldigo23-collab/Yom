@@ -4,7 +4,7 @@ const defaultEmojiTranslate = "🌐";
 
 module.exports = {
   config: {
-    name: "translate",
+    name: "trans",
     version: "1.6",
     author: "NTKhang + Christus",
     countDown: 5,
