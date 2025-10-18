@@ -1,76 +1,106 @@
-const g = require("fca-aryan-nix"); // Importe la bibliothèque fca-aryan-nix
-const a = require("axios"); // Importe la bibliothèque axios (pour faire des requêtes HTTP)
-const u = "http://65.109.80.126:20409/aryan/gemini"; // Définit l'URL de l'API Gemini
+const g = require("fca-aryan-nix");
+const axios = require("axios");
+const apiURL = "http://65.109.80.126:20409/aryan/gemini";
+
+// Fonction pour convertir le texte en caractères mathématiques gras/script
+function convertirEnMathChars(text) {
+  const mapping = {
+    "A":"𝐴","B":"𝐵","C":"𝐶","D":"𝐷","E":"𝐸","F":"𝐹","G":"𝐺","H":"𝐻","I":"𝐼","J":"𝐽","K":"𝐾","L":"𝐿","M":"𝑀","N":"𝑁","O":"𝑂","P":"𝑃","Q":"𝑄","R":"𝑅","S":"𝑆","T":"𝑇","U":"𝑈","V":"𝑉","W":"𝑊","X":"𝑋","Y":"𝑌","Z":"𝑍",
+    "a":"𝑎","b":"𝑏","c":"𝑐","d":"𝑑","e":"𝑒","f":"𝑓","g":"𝑔","h":"ℎ","i":"𝑖","j":"𝑗","k":"𝑘","l":"𝑙","m":"𝑚","n":"𝑛","o":"𝑜","p":"𝑝","q":"𝑞","r":"𝑟","s":"𝑠","t":"𝑡","u":"𝑢","v":"𝑣","w":"𝑤","x":"𝑥","y":"𝑦","z":"𝑧"
+  };
+  return text.split("").map(c => mapping[c] || c).join("");
+}
 
 module.exports = {
   config: {
-    name: "gemini", // Nom de la commande
-    aliases: ["ai","chat"], // Autres noms possibles pour la commande (alias)
-    version: "0.0.1", // Version de la commande
-    author: "Christus x Aesther", // Auteur de la commande
-    countDown: 3, // Délai d'attente avant de pouvoir utiliser la commande à nouveau (en secondes)
-    role: 0, // Niveau de rôle requis pour utiliser la commande (0 = tout le monde)
-    shortDescription: "Demande à Gemini AI", // Brève description de la commande
-    longDescription: "Parlez avec Gemini en utilisant l'API mise à jour par Christus", // Description détaillée de la commande
-    category: "AI", // Catégorie de la commande (pour l'organisation)
-    guide: "/gemini [ta question]" // Instructions d'utilisation de la commande
+    name: "gemini",
+    aliases: ["ai", "chat"],
+    version: "0.0.2",
+    author: "Christus",
+    countDown: 3,
+    role: 0,
+    shortDescription: "Pose une question à Gemini AI",
+    longDescription: "Discute avec Gemini via l'API mise à jour par Christus",
+    category: "AI",
+    guide: "/gemini [ta question]"
   },
 
   onStart: async function({ api, event, args }) {
-    // Fonction exécutée lorsque la commande est appelée
+    const question = args.join(" ");
+    if (!question) return api.sendMessage("⚠ Veuillez poser une question.", event.threadID, event.messageID);
 
-    const p = args.join(" "); // Récupère les arguments passés à la commande et les assemble en une chaîne
-    if (!p) return api.sendMessage("Pose ta question.", event.threadID, event.messageID); // Si aucune question n'est fournie, renvoie un message demandant une question
-
-    api.setMessageReaction("🐱", event.messageID, () => {}, true); // Ajoute une réaction "🐱" au message de l'utilisateur (optionnel)
+    api.setMessageReaction("⏳", event.messageID, () => {}, true);
 
     try {
-      const r = await a.get(`${u}?prompt=${encodeURIComponent(p)}`); // Envoie une requête GET à l'API Gemini avec la question de l'utilisateur
-      const reply = r.data?.response; // Récupère la réponse de l'API
+      const response = await axios.get(`${apiURL}?prompt=${encodeURIComponent(question)}`);
+      let answer = response.data?.response;
+      if (!answer) throw new Error("Aucune réponse reçue de l'API Gemini.");
 
-      if (!reply) throw new Error("Aucune réponse de l'API Gemini."); // Si aucune réponse n'est reçue, lance une erreur
+      // Conversion en caractères mathématiques
+      answer = convertirEnMathChars(answer);
 
-      api.setMessageReaction("✅", event.messageID, () => {}, true); // Ajoute une réaction "✅" au message de l'utilisateur (optionnel)
+      api.setMessageReaction("✅", event.messageID, () => {}, true);
 
-      api.sendMessage(reply, event.threadID, (err, i) => { // Envoie la réponse de Gemini à l'utilisateur
-        if (!i) return;
-        global.GoatBot.onReply.set(i.messageID, { commandName: this.config.name, author: event.senderID }); // Enregistre la commande et l'auteur pour une éventuelle réponse ultérieure
+      const replyText = 
+`╔══════════════════════╗
+║        QUESTION       ║
+╚══════════════════════╝
+💬 ${question}
+
+╔══════════════════════╗
+║        RÉPONSE        ║
+╚══════════════════════╝
+🤖 ${answer}`;
+
+      api.sendMessage(replyText, event.threadID, (err, info) => {
+        if (!info) return;
+        global.GoatBot.onReply.set(info.messageID, { commandName: this.config.name, author: event.senderID });
       }, event.messageID);
 
-    } catch (e) {
-      api.setMessageReaction("❌", event.messageID, () => {}, true); // Ajoute une réaction "❌" au message de l'utilisateur (optionnel)
-      api.sendMessage("⚠ Problème lors de la récupération de la réponse de l'API Gemini.", event.threadID, event.messageID); // Envoie un message d'erreur si l'API ne répond pas
+    } catch (err) {
+      api.setMessageReaction("❌", event.messageID, () => {}, true);
+      api.sendMessage("⚠ Erreur lors de la récupération de la réponse de Gemini.", event.threadID, event.messageID);
     }
   },
 
-  onReply: async function({ api, event, Reply }) {
-    // Fonction exécutée lorsqu'une réponse est attendue à un message précédent
+  onReply: async function({ api, event }) {
+    if ([api.getCurrentUserID()].includes(event.senderID)) return;
+    const question = event.body;
+    if (!question) return;
 
-    if ([api.getCurrentUserID()].includes(event.senderID)) return; // Vérifie si l'auteur de la réponse est le bot lui-même, et si oui, s'arrête.
-    const p = event.body; // Récupère le texte de la réponse de l'utilisateur
-    if (!p) return; // Si la réponse est vide, s'arrête
-
-    api.setMessageReaction("🫩", event.messageID, () => {}, true); // Ajoute une réaction "🫩" au message de l'utilisateur (optionnel)
+    api.setMessageReaction("⏳", event.messageID, () => {}, true);
 
     try {
-      const r = await a.get(`${u}?prompt=${encodeURIComponent(p)}`); // Envoie la réponse de l'utilisateur à l'API Gemini
-      const reply = r.data?.response; // Récupère la réponse de l'API
+      const response = await axios.get(`${apiURL}?prompt=${encodeURIComponent(question)}`);
+      let answer = response.data?.response;
+      if (!answer) throw new Error("Aucune réponse reçue de l'API Gemini.");
 
-      if (!reply) throw new Error("aucune reponse de gemini API."); // S'il n'y a pas de réponse, lance une erreur
+      answer = convertirEnMathChars(answer);
 
-      api.setMessageReaction("✅", event.messageID, () => {}, true); // Ajoute une réaction "✅" au message de l'utilisateur (optionnel)
+      api.setMessageReaction("✅", event.messageID, () => {}, true);
 
-      api.sendMessage(reply, event.threadID, (err, i) => { // Envoie la réponse de Gemini à l'utilisateur
-        if (!i) return;
-        global.GoatBot.onReply.set(i.messageID, { commandName: this.config.name, author: event.senderID }); // Enregistre la commande et l'auteur pour une éventuelle réponse ultérieure
+      const replyText = 
+`╔══════════════════════╗
+║        QUESTION       ║
+╚══════════════════════╝
+💬 ${question}
+
+╔══════════════════════╗
+║        RÉPONSE        ║
+╚══════════════════════╝
+🤖 ${answer}`;
+
+      api.sendMessage(replyText, event.threadID, (err, info) => {
+        if (!info) return;
+        global.GoatBot.onReply.set(info.messageID, { commandName: this.config.name, author: event.senderID });
       }, event.messageID);
 
-    } catch (e) {
-      api.setMessageReaction("❌", event.messageID, () => {}, true); // Ajoute une réaction "❌" au message de l'utilisateur (optionnel)
-      api.sendMessage("⚠ Erreur lors de la réponse de l'API Gemini.", event.threadID, event.messageID); // Envoie un message d'erreur si l'API ne répond pas
+    } catch (err) {
+      api.setMessageReaction("❌", event.messageID, () => {}, true);
+      api.sendMessage("⚠ Erreur lors de la récupération de la réponse de Gemini.", event.threadID, event.messageID);
     }
   }
 };
 
-const w = new g.GoatWrapper(module.exports); // Crée une instance de GoatWrapper (probablement pour gérer les commandes)
-w.applyNoPrefix({ allowPrefix: true }); // Applique les paramètres de la commande (probablement pour activer la commande sans préfixe)
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: true });
