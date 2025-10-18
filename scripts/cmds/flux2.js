@@ -1,4 +1,5 @@
 const axios = require("axios");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 const { getStreamFromURL } = global.utils;
 
 module.exports = {
@@ -14,7 +15,8 @@ module.exports = {
     category: "IA-IMAGE",
     guide: {
       fr: "{pn} <prompt>"
-    }
+    },
+    noPrefix: true
   },
 
   langs: {
@@ -50,3 +52,7 @@ module.exports = {
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
