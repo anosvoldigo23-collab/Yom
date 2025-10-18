@@ -1,36 +1,47 @@
-const a = require('axios');
-const u = "http://65.109.80.126:20409/aryan/drive";
+const axios = require('axios');
+const g = require('fca-aryan-nix'); // GoatWrapper pour noprefix
+
+const apiBase = "http://65.109.80.126:20409/aryan/drive";
 
 module.exports = {
   config: {
     name: "drive",
-    version: "0.0.2",
+    version: "0.0.3",
     author: "Christus",
-    countDown: 5,
     role: 0,
-    description: "Téléversez facilement des vidéos sur Google Drive !",
     category: "Utilitaire",
-    guide: "Utilisation : {pn} <lien> pour téléverser une vidéo depuis un lien\nOu répondez à une vidéo/message contenant un média pour téléverser"
+    shortDescription: { fr: "📤 Téléversez facilement des vidéos sur Google Drive" },
+    longDescription: { fr: "Permet de téléverser une vidéo depuis un lien ou un média attaché directement sur Google Drive." },
+    guide: { fr: "Utilisation : drive <lien> ou répondez à un message contenant un média pour téléverser" },
+    noPrefix: true // Activation noprefix
   },
 
   onStart: async function ({ message, event, args }) {
-    const i = event?.messageReply?.attachments?.[0]?.url || args[0];
-
-    if (!i) return message.reply("⚠ Veuillez fournir une URL de vidéo valide ou répondre à un message contenant un média.");
+    // Récupérer l'URL du média ou de l'argument
+    const mediaURL = event?.messageReply?.attachments?.[0]?.url || args[0];
+    if (!mediaURL) {
+      return message.reply("⚠ Veuillez fournir un lien de vidéo ou répondre à un message contenant un média.");
+    }
 
     try {
-      const r = await a.get(`${u}?url=${encodeURIComponent(i)}`);
-      const d = r.data || {};
-      console.log("Réponse de l'API :", d);
+      const res = await axios.get(`${apiBase}?url=${encodeURIComponent(mediaURL)}`);
+      const data = res.data || {};
+      console.log("Réponse API Drive :", data);
 
-      const l = d.driveLink || d.driveLIink;
-      if (l) return message.reply(`✅ Fichier téléversé sur Google Drive !\n\n🔗 URL : ${l}`);
-
-      const e = d.error || JSON.stringify(d) || "❌ Échec du téléversement du fichier.";
-      return message.reply(`Échec du téléversement : ${e}`);
-    } catch (e) {
-      console.error("Erreur de téléversement :", e.message || e);
+      const driveLink = data.driveLink || data.driveLIink;
+      if (driveLink) {
+        return message.reply(`✅ Fichier téléversé avec succès sur Google Drive !\n\n🔗 URL : ${driveLink}`);
+      } else {
+        const errMsg = data.error || JSON.stringify(data) || "❌ Échec du téléversement du fichier.";
+        return message.reply(`⚠ Échec du téléversement : ${errMsg}`);
+      }
+    } catch (err) {
+      console.error("Erreur lors du téléversement :", err.message || err);
       return message.reply("❌ Une erreur est survenue lors du téléversement. Veuillez réessayer plus tard.");
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
