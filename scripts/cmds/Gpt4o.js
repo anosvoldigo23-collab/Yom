@@ -3,7 +3,7 @@ const g = require('fca-aryan-nix'); // Import GoatWrapper
 
 module.exports = {
   config: {
-    name: "gpt4o",
+    name: "ai",
     aliases: ["askgpt4o", "kohi"],
     version: "1.1",
     author: "Christus",
