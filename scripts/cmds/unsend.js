@@ -1,33 +1,40 @@
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
+
 module.exports = {
-	config: {
-		name: "unsend",
-		version: "1.2",
-		author: "NTKhang",
-		countDown: 5,
-		role: 0,
-		description: {
-			vi: "Gỡ tin nhắn của bot",
-			en: "Unsend bot's message"
-		},
-		category: "box chat",
-		guide: {
-			vi: "reply tin nhắn muốn gỡ của bot và gọi lệnh {pn}",
-			en: "reply the message you want to unsend and call the command {pn}"
-		}
-	},
+  config: {
+    name: "u",
+    version: "1.3",
+    author: "NTKhang + Christus",
+    countDown: 5,
+    role: 0,
+    category: "box chat",
+    shortDescription: "❌ Supprime un message envoyé par le bot",
+    longDescription: "Permet de supprimer un message envoyé par le bot en répondant à celui-ci",
+    guide: "{pn} → reply à un message du bot pour le supprimer",
+    usePrefix: false,
+    noPrefix: true
+  },
 
-	langs: {
-		vi: {
-			syntaxError: "Vui lòng reply tin nhắn muốn gỡ của bot"
-		},
-		en: {
-			syntaxError: "Please reply the message you want to unsend"
-		}
-	},
+  langs: {
+    vi: {
+      syntaxError: "⚠️ Vui lòng reply tin nhắn muốn gỡ của bot"
+    },
+    en: {
+      syntaxError: "⚠️ Please reply the message you want to unsend"
+    }
+  },
 
-	onStart: async function ({ message, event, api, getLang }) {
-		if (!event.messageReply || event.messageReply.senderID != api.getCurrentUserID())
-			return message.reply(getLang("syntaxError"));
-		message.unsend(event.messageReply.messageID);
-	}
+  onStart: async function({ message, event, api, getLang }) {
+    const { messageReply } = event;
+    if (!messageReply || messageReply.senderID != api.getCurrentUserID()) {
+      return message.reply(`┌─⚠️ 𝗘𝗿𝗿𝗲𝘂𝗿 ──────────┐\n${getLang("syntaxError")}\n└───────────────────┘`);
+    }
+
+    message.unsend(messageReply.messageID);
+    return message.reply(`┌─✅ 𝗦𝘂𝗽𝗽𝗿𝗲𝘀𝘀𝗶𝗼𝗻 ──────────┐\nLe message a été supprimé avec succès !\n└────────────────────────┘`);
+  }
 };
+
+// 🟢 Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
