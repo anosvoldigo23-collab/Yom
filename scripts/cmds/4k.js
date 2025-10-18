@@ -1,6 +1,7 @@
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
+const g = require('fca-aryan-nix'); // Import GoatWrapper
 
 // URL de l'API d'upscale
 const apiUrl = "http://65.109.80.126:20409/aryan/4k";
@@ -9,15 +10,16 @@ module.exports = {
   config: {
     name: "4k",
     aliases: ["upscale"],
-    version: "1.1",
+    version: "1.2",
     role: 0,
     author: "Christus",
     countDown: 10,
     longDescription: "Améliore une image pour la convertir en résolution 4K.",
     category: "🖼️ Image",
     guide: {
-      fr: "${pn} réponds à une image pour l'améliorer en 4K."
-    }
+      fr: "Répondez à une image pour l'améliorer en 4K."
+    },
+    noPrefix: true, // Noprefix activé
   },
 
   onStart: async function ({ message, event }) {
@@ -69,3 +71,7 @@ module.exports = {
     }
   }
 };
+
+// Active noprefix via GoatWrapper
+const w = new g.GoatWrapper(module.exports);
+w.applyNoPrefix({ allowPrefix: false }); // totalement noprefix
