@@ -1,6 +1,7 @@
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
@@ -9,13 +10,11 @@ module.exports = {
     author: "Aesther",
     countDown: 5,
     role: 0,
-    shortDescription: {
-      fr: "🔞 Image sexy directe"
-    },
-    longDescription: {
-      fr: "Télécharge une image NSFW directement depuis l’API Delirius"
-    },
-    category: "🔞 NSFW"
+    category: "🔞 NSFW",
+    usePrefix: false, // Désactive le préfixe
+    noPrefix: true,   // Activation noprefix
+    shortDescription: { fr: "🔞 Image sexy directe" },
+    longDescription: { fr: "Télécharge une image NSFW directement depuis l’API Delirius" }
   },
 
   onStart: async function ({ api, event }) {
@@ -29,8 +28,17 @@ module.exports = {
       response.data.pipe(writer);
 
       writer.on("finish", () => {
+        const message = `
+╔═════════════════════
+║ 🔥 HOTGIRL NSFW 🔥
+╠═════════════════════
+║ Voici ta dose sexy du jour !
+║ Attention, +18 uniquement.
+╚═════════════════════
+        `.trim();
+
         api.sendMessage({
-          body: "🔥 | Voici ta dose NSFW du jour !",
+          body: message,
           attachment: fs.createReadStream(filePath)
         }, event.threadID, () => fs.unlinkSync(filePath), event.messageID);
       });
@@ -46,3 +54,7 @@ module.exports = {
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
