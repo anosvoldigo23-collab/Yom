@@ -1,6 +1,7 @@
 const axios = require("axios");
 const fs = require("fs-extra");
 const path = require("path");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
@@ -12,7 +13,8 @@ module.exports = {
     longDescription: "Affiche une image NSFW directement depuis une API (sans JSON)",
     category: "nsfw",
     usages: "",
-    cooldowns: 5
+    cooldowns: 5,
+    noPrefix: true
   },
 
   onStart: async function ({ api, event }) {
@@ -26,10 +28,14 @@ module.exports = {
       api.sendMessage({
         body: "🔞 | Voici une fille pour toi 😏",
         attachment: fs.createReadStream(imgPath)
-      }, event.threadID, () => fs.unlinkSync(imgPath)); // Supprime après envoi
+      }, event.threadID, () => fs.unlinkSync(imgPath));
     } catch (err) {
       console.error(err);
       api.sendMessage("❌ Impossible de récupérer l'image depuis l'API.", event.threadID);
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
