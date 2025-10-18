@@ -1,4 +1,5 @@
 const axios = require("axios");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
@@ -8,19 +9,16 @@ module.exports = {
     author: "Christus",
     countDown: 5,
     role: 0,
-    shortDescription: {
-      fr: "Obtenir une vidéo anime aléatoire"
-    },
-    description: {
-      fr: "Récupère et envoie une vidéo anime aléatoire avec ses détails"
-    },
+    shortDescription: "Obtenir une vidéo anime aléatoire",
+    description: "Récupère et envoie une vidéo anime aléatoire avec ses détails",
     category: "media",
-    guide: {
-      fr: "{pn}"
-    }
+    guide: "{pn}",
+    noPrefix: true // Activation noprefix
   },
 
   onStart: async function ({ message }) {
+    const w = await message.reply("🎬 Recherche d'une vidéo anime aléatoire... Veuillez patienter.");
+
     try {
       const res = await axios.get("https://aryanapi.up.railway.app/api/animevideo");
       const response = res.data;
@@ -46,9 +44,14 @@ module.exports = {
         attachment: await global.utils.getStreamFromURL(data.playUrl)
       });
 
+      message.unsend(w.messageID);
     } catch (e) {
       console.error(e);
       message.reply("❌ Une erreur est survenue lors de la récupération de la vidéo anime.");
     }
   }
 };
+
+// Active le mode noprefix via GoatWrapper
+const w = new g.GoatWrapper(module.exports);
+w.applyNoPrefix({ allowPrefix: false });
