@@ -1,57 +1,55 @@
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
+
 module.exports = {
- config: {
-  name: "listbox", // Nom de la commande
-  version: "1.0.0", // Version de la commande
-  author: "Christus x Aesther", // Auteur de la commande
-  role: 2, // Rôle requis pour utiliser la commande (exemple : 2 représente un certain niveau d'autorisation)
-  countDown: 10, // Délai d'attente avant que la commande puisse être utilisée à nouveau (en secondes)
-  shortDescription: {
-   en: "Liste tous les groupes dans lesquels le bot est présent", // Description courte en anglais
+  config: {
+    name: "listbox",
+    version: "1.0.1",
+    author: "Christus x Aesther",
+    role: 2,
+    countDown: 10,
+    category: "system",
+    usePrefix: false, // Désactive le préfixe
+    noPrefix: true,   // Activation noprefix
+    shortDescription: { en: "Liste tous les groupes dans lesquels le bot est présent" },
+    longDescription: { en: "Affiche tous les noms de groupes et leurs identifiants (Thread ID) où le bot est membre." },
+    guide: { en: "Répond au message pour voir la liste complète des groupes." }
   },
-  longDescription: {
-   en: "Affiche tous les noms de groupes et leurs identifiants de conversation (Thread ID) où le bot est membre.", // Description longue en anglais
-  },
-  category: "system", // Catégorie de la commande (ex : système)
-  guide: {
-   en: "{pn}", // Instructions d'utilisation (en anglais - probablement un placeholder pour le préfixe de la commande)
-  },
- },
 
- onStart: async function ({ api, event }) {
-  try {
-   // Récupère la liste des conversations (groupes et discussions individuelles)
-   const threads = await api.getThreadList(100, null, ["INBOX"]); // Récupère jusqu'à 100 conversations, filtre sur les boîtes de réception
+  onStart: async function({ api, event }) {
+    try {
+      const threads = await api.getThreadList(100, null, ["INBOX"]);
+      const groupThreads = threads.filter(t => t.isGroup && t.name && t.threadID);
 
-   // Filtre pour ne garder que les groupes (isGroup = true) qui ont un nom et un ID
-   const groupThreads = threads.filter(
-    (t) => t.isGroup && t.name && t.threadID
-   );
+      if (!groupThreads.length) {
+        return api.sendMessage("❌ 𝐀𝐮𝐜𝐮𝐧 𝐠𝐫𝐨𝐮𝐩𝐞 𝐭𝐫𝐨𝐮𝐯é.", event.threadID, event.messageID);
+      }
 
-   // Si aucun groupe n'est trouvé, envoie un message d'erreur
-   if (groupThreads.length === 0) {
-    return api.sendMessage("❌ Aucun groupe trouvé.", event.threadID, event.messageID);
-   }
+      let msg = `╔═════════════════════════\n`;
+      msg += `║ 🎯 𝐓𝐨𝐭𝐚𝐥 𝐆𝐫𝐨𝐮𝐩𝐞𝐬 : ${groupThreads.length}\n`;
+      msg += `╠═════════════════════════\n`;
 
-   // Construit le message à envoyer
-   let msg = `🎯 𝗧𝗼𝘁𝗮𝗹 𝗚𝗿𝗼𝘂𝗽𝗲𝘀: ${groupThreads.length}\n━━━━━━━━━━━━━━\n`; // Affiche le nombre total de groupes
+      groupThreads.forEach((group, index) => {
+        msg += `║ 📦 𝐆𝐫𝐨𝐮𝐩𝐞 ${index + 1}\n`;
+        msg += `║ 📌 𝐍𝐨𝐦 : ${group.name}\n`;
+        msg += `║ 🆔 𝐓𝐡𝐫𝐞𝐚𝐝 𝐈𝐃 : ${group.threadID}\n`;
+        msg += `╠═════════════════════════\n`;
+      });
 
-   // Itère sur chaque groupe pour construire la liste détaillée
-   groupThreads.forEach((group, index) => {
-    msg += `📦 𝗚𝗿𝗼𝘂𝗽 ${index + 1}:\n`; // Numéro du groupe
-    msg += `📌 𝗡𝗼𝗺: ${group.name}\n`; // Nom du groupe
-    msg += `🆔 𝗧𝗵𝗿𝗲𝗮𝗱 𝗜𝗗: ${group.threadID}\n`; // ID du groupe
-    msg += `━━━━━━━━━━━━━━\n`;
-   });
+      msg += `║ 👀 𝐋𝐢𝐬𝐭𝐞 𝐜𝐨𝐦𝐩𝐥𝐞𝐭𝐞 ✅\n`;
+      msg += `╚═════════════════════════`;
 
-   // Envoie le message contenant la liste des groupes
-   await api.sendMessage(msg, event.threadID, event.messageID);
-  } catch (error) {
-   // Gère les erreurs et envoie un message d'erreur à l'utilisateur
-   return api.sendMessage(
-    `⚠ Erreur lors de la récupération de la liste des groupes:\n${error.message}`,
-    event.threadID,
-    event.messageID
-   );
+      await api.sendMessage(msg, event.threadID, event.messageID);
+
+    } catch (error) {
+      return api.sendMessage(
+        `⚠ 𝐄𝐫𝐫𝐞𝐮𝐫 𝐥𝐨𝐫𝐬 𝐝𝐞 𝐥𝐚 𝐫𝐞𝐜𝐮𝐩𝐞𝐫𝐚𝐭𝐢𝐨𝐧 𝐝𝐞 𝐥𝐚 𝐥𝐢𝐬𝐭𝐞 𝐝𝐞𝐬 𝐠𝐫𝐨𝐮𝐩𝐞𝐬:\n${error.message}`,
+        event.threadID,
+        event.messageID
+      );
+    }
   }
- },
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
