@@ -1,39 +1,41 @@
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
+
 module.exports = {
   config: {
-    name: "pen", // Nom de la commande
-    version: "1.1", // Version de la commande
-    author: "Christus", // Auteur de la commande
-    countDown: 5, // Temps de refroidissement (en secondes)
-    role: 2, // Niveau de rôle requis pour utiliser la commande (2 = admin)
-    shortDescription: {
-      en: "Gérer les demandes de groupe en attente"
-    },
-    longDescription: {
-      en: "Approuver ou rejeter les demandes de groupe en attente dans la liste des spams ou les groupes non approuvés"
-    },
-    category: "admin", // Catégorie de la commande
-    guide: {
-      en: "{pn} - afficher la liste des demandes en attente\n{pn} approve <numéros> - approuver les groupes sélectionnés\n{pn} cancel <numéros> - rejeter les groupes sélectionnés"
-    }
+    name: "pen",
+    version: "1.1",
+    author: "Christus",
+    countDown: 5,
+    role: 2,
+    category: "admin",
+    shortDescription: "🛡️ Gérer les demandes de groupe en attente",
+    longDescription: "Approuver ou rejeter les demandes de groupe en attente dans la liste des spams ou les groupes non approuvés",
+    guide: `
+📌 Instructions :
+- Afficher la liste des groupes en attente : 'pen'
+- Approuver les groupes : 'approve <numéros>'
+- Rejeter les groupes : 'cancel <numéros>'
+Exemple : 'approve 1 2 3'
+    `.trim(),
+    usePrefix: false,
+    noPrefix: true
   },
+
   langs: {
     en: {
-      invalidNumber: "⚠️ | Entrée invalide\n━━━━━━━━━━━━━━\n\n» %1 n'est pas un nombre valide. Veuillez entrer uniquement des nombres.",
-      cancelSuccess: "❌ | Demande rejetée\n━━━━━━━━━━━━━━\n\n» Rejet avec succès de %1 demande(s) de groupe.",
-      approveSuccess: "✅ | Demande approuvée\n━━━━━━━━━━━━━━\n\n» Approuvé avec succès %1 groupe(s).",
-      cantGetPendingList: "⚠️ | Erreur\n━━━━━━━━━━━━━━\n\n» Échec de la récupération de la liste des demandes en attente. Veuillez réessayer plus tard.",
-      returnListPending: "📋 | Groupes en attente (%1)\n━━━━━━━━━━━━━━\n\n%2\n» Répondre avec :\n» 'approve <numéros>' pour approuver\n» 'cancel <numéros>' pour rejeter\n» Exemple : 'pending approve 1 2 3'",
-      returnListClean: "ℹ️ | Pas de groupes en attente\n━━━━━━━━━━━━━━\n\n» Il n'y a actuellement aucun groupe dans la liste des demandes en attente.",
-      noSelection: "⚠️ | Entrée manquante\n━━━━━━━━━━━━━━\n\n» Veuillez spécifier quels groupes traiter.\n» Exemple : 'pending approve 1 2 3'",
-      instruction: "📝 | Instructions\n━━━━━━━━━━━━━━\n\n1. Afficher les groupes en attente avec '{pn}'\n2. Approuver avec '{pn} approve <numéros>'\n3. Rejeter avec '{pn} cancel <numéros>'\n\nExemple :\n» '{pn} approve 1 2 3'\n» '{pn} cancel 4 5'"
+      invalidNumber: "⚠️ Entrée invalide\n─────────────────\n» %1 n'est pas un nombre valide. Veuillez entrer uniquement des nombres.",
+      cancelSuccess: "❌ Demande rejetée\n─────────────────\n» Rejet avec succès de %1 groupe(s).",
+      approveSuccess: "✅ Demande approuvée\n─────────────────\n» Approbation réussie de %1 groupe(s).",
+      cantGetPendingList: "⚠️ Erreur\n─────────────────\n» Impossible de récupérer la liste des demandes en attente. Réessayez plus tard.",
+      returnListPending: "📋 Groupes en attente (%1)\n─────────────────\n%2\n» Répondre avec :\n» 'approve <numéros>' pour approuver\n» 'cancel <numéros>' pour rejeter",
+      returnListClean: "ℹ️ Aucun groupe en attente\n─────────────────\n» La liste des demandes est vide pour le moment.",
+      noSelection: "⚠️ Entrée manquante\n─────────────────\n» Veuillez spécifier quels groupes traiter.\n» Exemple : 'approve 1 2 3'",
+      instruction: "📝 Instructions\n─────────────────\n1. Afficher les groupes : 'pen'\n2. Approuver : 'approve <numéros>'\n3. Rejeter : 'cancel <numéros>'"
     }
   },
-  onStart: async function({ api, event, getLang, commandName, args }) {
-    const { threadID, messageID } = event;
 
-    if (args[0]?.toLowerCase() === 'help') {
-      return api.sendMessage(getLang("instruction").replace(/{pn}/g, commandName), threadID, messageID);
-    }
+  onStart: async function({ api, event, getLang, commandName }) {
+    const { threadID, messageID } = event;
 
     try {
       const [spam, pending] = await Promise.all([
@@ -42,26 +44,23 @@ module.exports = {
       ]);
 
       const list = [...spam, ...pending]
-        .filter(group => group.isSubscribed && group.isGroup)
-        .map((group, index) => ({
-          ...group,
-          displayIndex: index + 1
-        }));
+        .filter(g => g.isSubscribed && g.isGroup)
+        .map((g, i) => ({ ...g, displayIndex: i + 1 }));
 
-      if (list.length === 0) {
+      if (!list.length) {
         return api.sendMessage(getLang("returnListClean"), threadID, messageID);
       }
 
-      const msg = list.map(group =>
+      const msg = list.map(g =>
         `╭───────────────\n` +
-        `│ ${group.displayIndex}. ${group.name || 'Groupe sans nom'}\n` +
-        `│ 👥 Membres : ${group.participantIDs.length}\n` +
-        `│ 🆔 ID : ${group.threadID}\n` +
+        `│ ${g.displayIndex}. ${g.name || "Groupe sans nom"}\n` +
+        `│ 👥 Membres : ${g.participantIDs.length}\n` +
+        `│ 🆔 ID : ${g.threadID}\n` +
         `╰───────────────`
-      ).join('\n\n');
+      ).join("\n\n");
 
       const replyMsg = await api.sendMessage(
-        getLang("returnListPending", list.length, msg).replace(/{pn}/g, commandName),
+        getLang("returnListPending", list.length, msg),
         threadID,
         (err, info) => {
           if (!err) {
@@ -76,75 +75,59 @@ module.exports = {
         messageID
       );
 
-      setTimeout(() => {
-        if (global.GoatBot.onReply.has(replyMsg.messageID)) {
-          global.GoatBot.onReply.delete(replyMsg.messageID);
-        }
-      }, 5 * 60 * 1000);
+      setTimeout(() => global.GoatBot.onReply.delete(replyMsg.messageID), 5 * 60 * 1000);
 
-    } catch (error) {
-      console.error(error);
-      return api.sendMessage(getLang("cantGetPendingList"), threadID, messageID);
+    } catch (err) {
+      console.error(err);
+      api.sendMessage(getLang("cantGetPendingList"), threadID, messageID);
     }
   },
-  onReply: async function({ api, event, Reply, getLang, commandName }) {
+
+  onReply: async function({ api, event, Reply, getLang }) {
     if (String(event.senderID) !== String(Reply.author)) return;
 
     const { body, threadID, messageID } = event;
     const args = body.trim().split(/\s+/);
     const action = args[0]?.toLowerCase();
 
-    if (!action || (action !== 'approve' && action !== 'cancel')) {
-      return api.sendMessage(
-        getLang("noSelection").replace(/{pn}/g, commandName),
-        threadID,
-        messageID
-      );
+    if (!["approve", "cancel"].includes(action)) {
+      return api.sendMessage(getLang("noSelection"), threadID, messageID);
     }
 
-    const numbers = args.slice(1).map(num => parseInt(num)).filter(num => !isNaN(num));
+    const numbers = args.slice(1).map(n => parseInt(n)).filter(n => !isNaN(n));
+    if (!numbers.length) return api.sendMessage(getLang("invalidNumber", "sélection vide"), threadID, messageID);
 
-    if (numbers.length === 0) {
-      return api.sendMessage(getLang("invalidNumber", "sélection vide"), threadID, messageID);
-    }
+    const invalidNumbers = numbers.filter(n => n <= 0 || n > Reply.pending.length);
+    if (invalidNumbers.length) return api.sendMessage(getLang("invalidNumber", invalidNumbers.join(", ")), threadID, messageID);
 
-    const invalidNumbers = numbers.filter(num => num <= 0 || num > Reply.pending.length);
-    if (invalidNumbers.length > 0) {
-      return api.sendMessage(
-        getLang("invalidNumber", invalidNumbers.join(', ')),
-        threadID,
-        messageID
-      );
-    }
-
-    const selectedGroups = numbers.map(num => Reply.pending[num - 1]);
+    const selectedGroups = numbers.map(n => Reply.pending[n - 1]);
     let successCount = 0;
 
-    for (const group of selectedGroups) {
+    for (const g of selectedGroups) {
       try {
-        if (action === 'approve') {
+        if (action === "approve") {
           await api.sendMessage(
-            "🔔 | Notification de groupe\n━━━━━━━━━━━━━━\n\n» Ce groupe a été approuvé par l'administrateur.",
-            group.threadID
+            "🔔 | Notification de groupe\n─────────────────\n» Ce groupe a été approuvé par l'administrateur.",
+            g.threadID
           );
-          successCount++;
         } else {
-          await api.removeUserFromGroup(api.getCurrentUserID(), group.threadID);
-          successCount++;
+          await api.removeUserFromGroup(api.getCurrentUserID(), g.threadID);
         }
-      } catch (error) {
-        console.error(`Échec du traitement du groupe ${group.threadID}:`, error);
+        successCount++;
+      } catch (err) {
+        console.error(`Échec du traitement du groupe ${g.threadID}:`, err);
       }
     }
 
-    const resultMessage = action === 'approve'
+    const resultMsg = action === "approve"
       ? getLang("approveSuccess", successCount)
       : getLang("cancelSuccess", successCount);
 
-    api.sendMessage(resultMessage, threadID, messageID);
-
-    if (global.GoatBot.onReply.has(Reply.messageID)) {
-      global.GoatBot.onReply.delete(Reply.messageID);
-    }
+    api.sendMessage(resultMsg, threadID, messageID);
+    global.GoatBot.onReply.delete(Reply.messageID);
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
