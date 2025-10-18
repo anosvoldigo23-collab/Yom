@@ -1,53 +1,44 @@
 const axios = require('axios');
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
-	config: {
-		name: "waifu",
-		aliases: ["waifu", "neko"],
-		version: "1.0",
-		author: "Christus x Aesther",
-		countDown: 5,
-		role: 0,
-		shortDescription: "Obtiens une image waifu aléatoire",
-		longDescription: "Envoie une image d'animé waifu ou neko aléatoire (ou d'une catégorie spécifique).",
-		category: "anime",
-		guide: "{pn} [catégorie]\n\nCatégories disponibles : waifu, neko, shinobu, megumin, bully, cuddle, cry, kiss, lick, hug, awoo, pat, smug, bonk, yeet, blush, smile, wave, highfive, handhold, nom, bite, glomp, slap, kill, kick, happy, wink, poke, dance, cringe"
-	},
+  config: {
+    name: "waifu",
+    aliases: ["waifu", "neko"],
+    version: "1.1",
+    author: "Christus x Aesther",
+    countDown: 5,
+    role: 0,
+    category: "anime",
+    shortDescription: "💠 Obtiens une image waifu aléatoire",
+    longDescription: "Envoie une image d'animé waifu ou neko aléatoire (ou d'une catégorie spécifique).",
+    guide: `{pn} [catégorie]
+    
+Catégories disponibles : waifu, neko, shinobu, megumin, bully, cuddle, cry, kiss, lick, hug, awoo, pat, smug, bonk, yeet, blush, smile, wave, highfive, handhold, nom, bite, glomp, slap, kill, kick, happy, wink, poke, dance, cringe`,
+    usePrefix: false,
+    noPrefix: true
+  },
 
-	onStart: async function ({ message, args }) {
-		const categorie = args.join(" ");
-		if (!categorie) {
-			// Si aucune catégorie n'est donnée → waifu par défaut
-			try {
-				let res = await axios.get(`https://api.waifu.pics/sfw/waifu`);
-				let data = res.data;
-				let image = data.url;
+  onStart: async function({ message, args }) {
+    const categorie = args.join(" ") || "waifu";
+    const apiUrl = `https://api.waifu.pics/sfw/${categorie}`;
 
-				const form = {
-					body: `💠 Image Waifu Aléatoire 💠`
-				};
-				if (image)
-					form.attachment = await global.utils.getStreamFromURL(image);
-				message.reply(form);
-			} catch (e) {
-				message.reply(`🥺 Aucune image trouvée... réessaie plus tard.`);
-			}
-		} else {
-			// Si une catégorie est donnée
-			try {
-				let res = await axios.get(`https://api.waifu.pics/sfw/${categorie}`);
-				let data = res.data;
-				let image = data.url;
+    try {
+      const res = await axios.get(apiUrl);
+      const data = res.data;
 
-				const form = {
-					body: `🎴 Catégorie : ${categorie}`
-				};
-				if (image)
-					form.attachment = await global.utils.getStreamFromURL(image);
-				message.reply(form);
-			} catch (e) {
-				message.reply(`🥺 Catégorie introuvable 🥲\n\nCatégories disponibles : waifu, neko, shinobu, megumin, bully, cuddle, cry, kiss, lick, hug, awoo, pat, smug, bonk, yeet, blush, smile, wave, highfive, handhold, nom, bite, glomp, slap, kill, kick, happy, wink, poke, dance, cringe`);
-			}
-		}
-	}
+      if (!data.url) throw new Error("Image non disponible");
+
+      message.reply({
+        body: `╭─💠 𝗪𝗮𝗶𝗳𝘂 💠─╮\n🎴 Catégorie : ${categorie}\n╰─────────────────╯`,
+        attachment: await global.utils.getStreamFromURL(data.url)
+      });
+    } catch (err) {
+      message.reply(`🥺 Oups, la catégorie '${categorie}' est introuvable ou aucune image disponible.\n\nCatégories valides : waifu, neko, shinobu, megumin, bully, cuddle, cry, kiss, lick, hug, awoo, pat, smug, bonk, yeet, blush, smile, wave, highfive, handhold, nom, bite, glomp, slap, kill, kick, happy, wink, poke, dance, cringe`);
+    }
+  }
 };
+
+// ⚡ Activation NOPREFIX
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
