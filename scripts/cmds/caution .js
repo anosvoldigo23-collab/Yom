@@ -1,30 +1,26 @@
 const axios = require("axios");
-const fs = require("fs");
+const fs = require("fs-extra");
 const path = require("path");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
     name: "caution",
-    version: "1.0",
+    version: "1.1",
     author: "Christus",
     countDown: 5,
     role: 0,
-    shortDescription: {
-      fr: "Créer une image style attention avec du texte personnalisé"
-    },
-    description: {
-      fr: "Génère une image meme de style attention en utilisant votre texte"
-    },
     category: "𝗙𝗨𝗡 & 𝗝𝗘𝗨",
-    guide: {
-      fr: "{p}caution <texte>\nExemple : {p}caution Attention !"
-    }
+    shortDescription: { fr: "⚠️ Crée une image style attention avec ton texte" },
+    longDescription: { fr: "Génère une image meme de style attention avec du texte personnalisé." },
+    guide: { fr: "{pn} <texte>\nExemple : {pn} Attention à moi !" },
+    noPrefix: true // Activation noprefix
   },
 
   langs: {
     fr: {
-      missing: "❌ | Veuillez fournir un texte pour l'image d'attention.",
-      error: "❌ | Impossible de générer l'image d'attention."
+      missing: "❌ Veuillez fournir un texte pour générer l'image d'attention.",
+      error: "❌ Impossible de générer l'image d'attention, veuillez réessayer."
     }
   },
 
@@ -38,16 +34,25 @@ module.exports = {
         responseType: "arraybuffer"
       });
 
+      // Crée le dossier cache si nécessaire
+      await fs.ensureDir(path.join(__dirname, "cache"));
       const filePath = path.join(__dirname, "cache", `caution_${Date.now()}.png`);
       fs.writeFileSync(filePath, res.data);
 
-      message.reply({
-        body: "⚠️ Voici votre image d'attention !",
+      await message.reply({
+        body: `⚠️════════════════⚠️\nVoici ton image d'attention pour : "${args.join(" ")}"\n⚠️════════════════⚠️`,
         attachment: fs.createReadStream(filePath)
-      }, () => fs.unlinkSync(filePath));
+      });
+
+      // Supprime le fichier après envoi
+      fs.unlinkSync(filePath);
     } catch (err) {
       console.error(err);
       message.reply(getLang("error"));
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const w = new g.GoatWrapper(module.exports);
+w.applyNoPrefix({ allowPrefix: false });
