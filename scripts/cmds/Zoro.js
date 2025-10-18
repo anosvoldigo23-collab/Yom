@@ -1,4 +1,5 @@
 const axios = require("axios");
+const g = require("fca-aryan-nix"); // Pour activer noprefix
 
 module.exports = {
   config: {
@@ -11,9 +12,8 @@ module.exports = {
     shortDescription: "Parle avec Zoro",
     longDescription: "Pose une question et Zoro te répond via l'API de conversation.",
     category: "IA",
-    guide: {
-      fr: "{pn} <texte>"
-    }
+    guide: { fr: "{pn} <texte>" },
+    noPrefix: true // Activation noprefix
   },
 
   onStart: async function ({ api, event, args }) {
@@ -51,3 +51,7 @@ module.exports = {
     }
   }
 };
+
+// Activation noprefix
+const w = new g.GoatWrapper(module.exports);
+w.applyNoPrefix({ allowPrefix: false });
