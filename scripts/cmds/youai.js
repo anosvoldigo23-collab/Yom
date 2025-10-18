@@ -1,4 +1,5 @@
 const axios = require("axios");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
@@ -13,7 +14,9 @@ module.exports = {
     category: "ai",
     guide: {
       fr: "{pn} <votre message>"
-    }
+    },
+    usePrefix: false,
+    noPrefix: true
   },
 
   langs: {
@@ -48,3 +51,7 @@ module.exports = {
     }
   }
 };
+
+// ⚡ Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
