@@ -1,6 +1,7 @@
 const axios = require("axios");
 const fs = require("fs-extra");
 const path = require("path");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
@@ -9,9 +10,11 @@ module.exports = {
     author: "Aesther x Christus",
     countDown: 5,
     role: 0,
+    category: "🔞 NSFW",
+    usePrefix: false, // Désactive le préfixe
+    noPrefix: true,   // Activation noprefix
     shortDescription: "🔞 Hentai TV info + image",
     longDescription: "Affiche les infos d'un hentai TV et envoie l'image",
-    category: "nsfw",
     guide: "{pn} <query>"
   },
 
@@ -26,15 +29,18 @@ module.exports = {
       if (!res.data.status || !res.data.result || res.data.result.length === 0) 
         return message.reply("❌ Aucun résultat trouvé pour cette requête.");
 
-      const results = res.data.result.slice(0, 10); // on prend max 10 résultats
-      let msg = "📺 Voici les résultats :\n\n";
+      const results = res.data.result.slice(0, 10); // max 10 résultats
+      let msg = "╔═══════════════════════════\n";
+      msg += "║ 📺 𝗛𝗘𝗡𝗧𝗔𝗜 𝗧𝗩 - Résultats 📺\n╠═══════════════════════════\n";
       results.forEach((item, i) => {
-        msg += `${i + 1}. 🎬 ${item.title}\n👁️ Vues: ${item.views}\n\n`;
+        msg += `║ ${i + 1}. 🎬 ${item.title}\n║ 👁️ Vues: ${item.views}\n║\n`;
       });
+      msg += "╚═══════════════════════════\n\n";
+      msg += "✏️ Répondez avec le numéro de l'anime que vous souhaitez voir en image.";
 
-      message.reply(msg);
+      await message.reply(msg);
 
-      // On attend la réponse de l'utilisateur
+      // Enregistrement pour onReply
       global.GoatBot.onReply.set(event.messageID, {
         commandName: this.config.name,
         author: event.senderID,
@@ -62,8 +68,17 @@ module.exports = {
       const imgData = (await axios.get(selected.thumbnail, { responseType: "arraybuffer" })).data;
       fs.writeFileSync(filePath, imgData);
 
+      const msg = `
+╔═══════════════════════════
+║ 🎬 ${selected.title}
+║ 👁️ Vues: ${selected.views}
+║ 🔗 Lien: ${selected.url}
+╚═══════════════════════════
+✨💖 Enjoy! 💖✨
+      `.trim();
+
       api.sendMessage({
-        body: `🎬 ${selected.title}\n👁️ Vues: ${selected.views}\n🔗 Lien: ${selected.url}`,
+        body: msg,
         attachment: fs.createReadStream(filePath)
       }, event.threadID, () => fs.unlinkSync(filePath));
 
@@ -73,3 +88,7 @@ module.exports = {
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
