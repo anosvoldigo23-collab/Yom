@@ -1,6 +1,7 @@
 const axios = require("axios");
 const fs = require("fs");
 const path = require("path");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
@@ -9,9 +10,11 @@ module.exports = {
     author: "Aesther x Christus",
     countDown: 5,
     role: 0,
+    category: "🔞 NSFW",
+    usePrefix: false, // Désactive le préfixe
+    noPrefix: true,   // Activation noprefix
     shortDescription: "🔞 Hentai TV Info",
     longDescription: "Affiche les informations d'un anime hentai avec miniature",
-    category: "nsfw",
     guide: "{pn} <query>\nEx : {pn} loli"
   },
 
@@ -38,13 +41,25 @@ module.exports = {
       const imgRes = await axios.get(item.thumbnail, { responseType: "arraybuffer" });
       fs.writeFileSync(tempPath, imgRes.data);
 
-      // Envoyer le message
+      // Construire un message stylé
+      const msg = `
+╔═════════════════════════════
+║ 📺 𝗛𝗘𝗡𝗧𝗔𝗜 𝗧𝗩 📺
+╠═════════════════════════════
+║ 🖼️ Titre : ${item.title}
+║ 👀 Vues : ${item.views}
+║ 🔗 Lien  : ${item.url}
+╚═════════════════════════════
+✨💖 Enjoy! 💖✨
+      `.trim();
+
+      // Envoyer le message avec l'image
       await message.reply({
-        body: `📺 𝗛𝗘𝗡𝗧𝗔𝗜 𝗧𝗩 📺\n\n🖼️ Titre : ${item.title}\n👀 Vues : ${item.views}\n🔗 Lien : ${item.url}\n\n✨💖 Enjoy! 💖✨`,
+        body: msg,
         attachment: fs.createReadStream(tempPath)
       });
 
-      // Clear cache et supprimer message temporaire
+      // Nettoyer
       fs.unlinkSync(tempPath);
       await message.unsend(waitMsg.messageID);
 
@@ -54,3 +69,7 @@ module.exports = {
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
