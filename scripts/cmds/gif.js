@@ -1,4 +1,5 @@
 const axios = require("axios");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
@@ -10,18 +11,18 @@ module.exports = {
     shortDescription: "🎬 Envoie un GIF aléatoire",
     longDescription: "Permet d'envoyer 1 GIF ou plus depuis Tenor selon le nombre indiqué.",
     category: "fun",
-    guide: "{pn} <mot-clé> [nombre]"
+    guide: "{pn} <mot-clé> [nombre]",
+    noPrefix: true
   },
 
   onStart: async function({ message, args }) {
     if (!args[0]) return message.reply("❌ Veuillez entrer un mot-clé pour chercher un GIF !");
     
     const query = args[0];
-    let count = parseInt(args[1]) || 1; // Par défaut 1 GIF
-    if (count > 5) count = 5; // Limite maximale de 5 GIF pour éviter trop de messages
+    let count = parseInt(args[1]) || 1; 
+    if (count > 5) count = 5;
 
     try {
-      // Clear cache simulée : on peut réinitialiser les variables locales si nécessaire
       let results = [];
 
       const res = await axios.get(`https://archive.lick.eu.org/api/search/tenor-gif?query=${query}&count=${count}`);
@@ -43,3 +44,7 @@ module.exports = {
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
