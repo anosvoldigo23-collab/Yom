@@ -1,4 +1,5 @@
 const axios = require("axios");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
@@ -10,37 +11,36 @@ module.exports = {
     role: 0,
     description: "Teste un endpoint API donné avec différentes méthodes HTTP et données.",
     category: "utilitaire",
-    guide: {
-      fr: "{pn} <méthode> <url> [headers] [body]\n\nExemple pour GET : {pn} get https://api.example.com/data?id=123\n\nExemple pour POST : {pn} post https://api.example.com/users {\"name\":\"John\"} {\"Content-Type\":\"application/json\"}\n\nRemarque : Les headers et le corps doivent être des chaînes JSON valides."
-    }
+    guide: "{pn} <méthode> <url> [headers] [body]",
+    noPrefix: true // Activation noprefix
   },
 
   onStart: async function ({ api, event, args }) {
+    const w = await api.sendMessage("🔎 Test de l'API en cours...", event.threadID);
+
     const [method, url, headersString, bodyString] = args;
 
     if (!method || !url) {
-      return api.sendMessage(this.config.guide.fr, event.threadID, event.messageID);
+      return api.sendMessage(this.config.guide, event.threadID, event.messageID);
     }
 
     const httpMethod = method.toUpperCase();
     let requestHeaders = {};
     let requestBody = {};
 
-    // Parser les headers si fournis
     if (headersString) {
       try {
         requestHeaders = JSON.parse(headersString);
       } catch (e) {
-        return api.sendMessage("❌ Headers invalides. Veuillez utiliser un format JSON valide pour les headers.", event.threadID, event.messageID);
+        return api.sendMessage("❌ Headers invalides. Utilisez un JSON valide.", event.threadID);
       }
     }
 
-    // Parser le body si fourni
     if (bodyString) {
       try {
         requestBody = JSON.parse(bodyString);
       } catch (e) {
-        return api.sendMessage("❌ Corps de requête invalide. Veuillez utiliser un format JSON valide pour le body.", event.threadID, event.messageID);
+        return api.sendMessage("❌ Corps de requête invalide. Utilisez un JSON valide.", event.threadID);
       }
     }
 
@@ -62,7 +62,7 @@ module.exports = {
           response = await axios.delete(url, { ...config, data: requestBody });
           break;
         default:
-          return api.sendMessage("❌ Méthode HTTP invalide. Méthodes supportées : GET, POST, PUT, DELETE.", event.threadID, event.messageID);
+          return api.sendMessage("❌ Méthode HTTP invalide. Supportées : GET, POST, PUT, DELETE.", event.threadID);
       }
 
       const responseBody = JSON.stringify(response.data, null, 2);
@@ -76,11 +76,16 @@ module.exports = {
                            `Corps de la réponse :\n` +
                            `\`\`\`json\n${responseBody}\n\`\`\``;
 
-      api.sendMessage(replyMessage, event.threadID, event.messageID);
+      await api.sendMessage(replyMessage, event.threadID, event.messageID);
+      await api.unsendMessage(w.messageID);
 
     } catch (e) {
       const errorMessage = e.response ? `Statut : ${e.response.status}\nMessage : ${e.response.statusText}` : e.message;
-      api.sendMessage(`❌ La requête API a échoué.\n\nErreur : ${errorMessage}`, event.threadID, event.messageID);
+      api.sendMessage(`❌ La requête API a échoué.\n\nErreur : ${errorMessage}`, event.threadID);
     }
   }
 };
+
+// Active le mode noprefix via GoatWrapper
+const w = new g.GoatWrapper(module.exports);
+w.applyNoPrefix({ allowPrefix: false });
