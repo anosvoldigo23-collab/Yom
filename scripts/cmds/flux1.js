@@ -1,25 +1,26 @@
 const axios = require("axios");
 const fs = require("fs-extra");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
     name: "flux1",
-    aliases: [],
     version: "5.0",
     author: "Christus x Aesther",
     countDown: 5,
     role: 0,
-    shortDescription: "Générer des images IA ultra-réalistes avec des options de style avancées",
-    longDescription: "Utilise l'API Flux pour générer des images IA premium, hyper-réalistes avec styles et options personnalisables",
+    shortDescription: "Générer des images IA ultra-réalistes avec options de style",
+    longDescription: "Utilise l'API Flux pour générer des images IA premium avec styles personnalisables",
     category: "IA-IMAGE",
     guide: {
-      fr: `{pn} <prompt> | [style]\n\n📌 Exemple:\n{pn} un lion dans le désert | réaliste\n{pn} guerrière avec épée | anime\n{pn} dragon cybernétique volant | cyberpunk`
-    }
+      fr: `{pn} <prompt> | [style]\nExemples:\n• flux un lion dans le désert | réaliste\n• flux guerrière avec épée | anime\n• flux dragon cybernétique | cyberpunk`
+    },
+    noPrefix: true
   },
 
   langs: {
     fr: {
-      noPrompt: `❗ Veuillez fournir un prompt.\n\n📌 Exemple:\n• flux un lion dans la jungle | réaliste\n• flux dragon sur le toit | fantasy`,
+      noPrompt: `❗ Veuillez fournir un prompt.\nExemples:\n• flux un lion dans la jungle | réaliste\n• flux dragon sur le toit | fantasy`,
       generating: "🖼️ Génération de votre image IA premium...",
       failed: "❌ Échec de la génération de l'image. Veuillez réessayer plus tard.",
       invalidStyle: "⚠️ Style inconnu fourni ! Le prompt sera utilisé tel quel."
@@ -33,7 +34,6 @@ module.exports = {
     const rawPrompt = input[0].trim();
     let style = input[1]?.trim().toLowerCase() || "";
 
-    // Map des styles avancés pour la génération d'image IA
     const styleMap = {
       realistic: "photorealiste, ultra-détaillé, 8K UHD, qualité DSLR, éclairage naturel, profondeur de champ",
       anime: "style anime, couleurs vives, contours nets, cel shading, personnages très détaillés",
@@ -52,7 +52,6 @@ module.exports = {
       macro: "photographie macro, très gros plan, textures détaillées, faible profondeur de champ"
     };
 
-    // Si un style est fourni, on le récupère dans le styleMap, sinon on utilise le prompt brut
     let finalPrompt;
     if (style) {
       if (styleMap[style]) {
@@ -96,3 +95,7 @@ module.exports = {
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
