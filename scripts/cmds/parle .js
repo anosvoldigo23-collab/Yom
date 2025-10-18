@@ -1,6 +1,7 @@
 const axios = require("axios");
 const fs = require("fs-extra");
 const path = require("path");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 // Modèles de voix disponibles
 const models = {
@@ -17,38 +18,29 @@ module.exports = {
     author: "Christus x Aesther",
     countDown: 5,
     role: 0,
-    shortDescription: { fr: "Convertir du texte en parole avec des voix prédéfinies" },
-    longDescription: { fr: "Génère une voix à partir d’un texte en utilisant différents modèles de voix (aucune clé API requise)" },
     category: "média",
-    guide: {
-      fr: `
+    shortDescription: "🗣️ Convertir du texte en parole avec différentes voix",
+    longDescription: "Génère un fichier audio depuis un texte en utilisant plusieurs modèles de voix prédéfinis (aucune clé API requise)",
+    guide: `
 +parle Bonjour tout le monde
 +parle Salut à tous -m2
 +parle -m (pour voir la liste des voix)
-      `.trim()
-    }
+    `.trim(),
+    usePrefix: false,
+    noPrefix: true
   },
 
-  onStart: async function ({ message, args }) {
+  onStart: async function({ message, args }) {
     const input = args.join(" ");
     if (!input) return message.reply("❗ Merci de fournir un texte. Exemple : `+parle Bonjour tout le monde`");
 
-    // Afficher la liste des voix disponibles
+    // Afficher la liste des voix
     if (input.toLowerCase() === "-m") {
+      const listVoices = Object.entries(models).map(([num, m]) => `🔢 -m${num} : ${m.name}\n${m.desc}`).join("\n\n");
       const listMsg = `
-🎤 𝗠𝗼𝗱𝗲̀𝗹𝗲𝘀 𝗱𝗲 𝘃𝗼𝗶𝘅 𝗱𝗶𝘀𝗽𝗼𝗻𝗶𝗯𝗹𝗲𝘀 :
+🎤 𝗟𝗶𝘀𝘁𝗲 𝗱𝗲𝘀 𝘃𝗼𝗶𝘅 𝗱𝗶𝘀𝗽𝗼𝗻𝗶𝗯𝗹𝗲𝘀 :
 
-🔢 -m1 : Joey  
-🧑 Voix masculine (Anglais américain)
-
-🔢 -m2 : Amy  
-👩 Voix féminine (Anglais britannique)
-
-🔢 -m3 : Brian  
-🧔‍♂️ Voix masculine (Anglais britannique)
-
-🔢 -m4 : Mizuki  
-👧 Voix féminine (Japonais)
+${listVoices}
 
 📝 Utilisation : +parle Salut à tous -m2
       `.trim();
@@ -61,38 +53,38 @@ module.exports = {
     const voice = models[modelNum]?.name;
     if (!voice) return message.reply("❌ Numéro de modèle invalide. Utilise `+parle -m` pour voir la liste.");
 
-    // Nettoyer le texte (enlevant le flag -m)
+    // Nettoyer le texte
     const content = input.replace(`-m${modelNum}`, "").trim();
     if (!content) return message.reply("❗ Le texte est vide après avoir retiré le flag du modèle.");
 
     try {
-      // Requête vers le site TTSMP3 pour générer l'audio
+      // Requête TTSMP3 pour générer l'audio
       const res = await axios.post("https://ttsmp3.com/makemp3_new.php", new URLSearchParams({
         msg: content,
         lang: voice,
         source: "ttsmp3"
       }).toString(), {
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded"
-        }
+        headers: { "Content-Type": "application/x-www-form-urlencoded" }
       });
 
       if (!res.data || !res.data.URL) return message.reply("⚠️ Échec de la génération audio.");
 
       const fileName = `tts_${Date.now()}.mp3`;
       const filePath = path.join(__dirname, "cache", fileName);
-
-      // Téléchargement du fichier audio généré
-      const audioRes = await axios.get(res.data.URL, { responseType: "stream" });
       await fs.ensureDir(path.dirname(filePath));
-      const writer = fs.createWriteStream(filePath);
 
+      const audioRes = await axios.get(res.data.URL, { responseType: "stream" });
+      const writer = fs.createWriteStream(filePath);
       audioRes.data.pipe(writer);
+
       writer.on("finish", () => {
-        message.reply({
-          body: `🗣️ *${content}*\n🎤 Voix : ${voice}`,
-          attachment: fs.createReadStream(filePath)
-        });
+        const msg = `
+╔═════════════════════════════
+║ 🗣️ 𝐓𝐞𝐱𝐭𝐞 : ${content}
+║ 🎤 𝐕𝐨𝐢𝐱 : ${voice}
+╚═════════════════════════════
+        `.trim();
+        message.reply({ body: msg, attachment: fs.createReadStream(filePath) });
       });
 
     } catch (err) {
@@ -101,3 +93,7 @@ module.exports = {
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
