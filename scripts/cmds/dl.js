@@ -1,4 +1,5 @@
-const axios = require('axios');
+const axios = require("axios");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
@@ -6,58 +7,42 @@ module.exports = {
     aliases: [],
     version: "1.4",
     author: "Christus",
-    countDown: 5,
     role: 0,
-    shortDescription: {
-      fr: "Télécharger et envoyer une vidéo depuis une URL"
-    },
-    description: {
-      fr: "Télécharge une vidéo depuis une URL et l'envoie dans le chat."
-    },
     category: "𝗠𝗘𝗗𝗜𝗔",
-    guide: {
-      fr: "Utilisez la commande : !alldl <url> ou répondez à un message contenant un lien."
-    }
+    shortDescription: { fr: "📥 Télécharger et envoyer une vidéo depuis une URL" },
+    longDescription: { fr: "Télécharge une vidéo depuis une URL et l'envoie automatiquement dans le chat." },
+    guide: { fr: "Utilisez la commande : dl <url> ou répondez à un message contenant un lien." },
+    noPrefix: true // Activation noprefix
   },
 
   onStart: async function ({ api, event, args }) {
     let videoURL = args.join(" ");
-    
+
+    // Vérifier si l'URL est dans le message répondu
+    if (!videoURL && event.messageReply?.body) {
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      const foundURLs = event.messageReply.body.match(urlRegex);
+      videoURL = foundURLs?.[0];
+    }
+
     if (!videoURL) {
-      if (event.messageReply && event.messageReply.body) {
-        const replyMessage = event.messageReply.body;
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        const foundURLs = replyMessage.match(urlRegex);
-        if (foundURLs && foundURLs.length > 0) {
-          videoURL = foundURLs[0];
-        } else {
-          api.setMessageReaction("❌", event.messageID, () => {}, true);
-          return api.sendMessage(
-            "Aucune URL trouvée dans le message répondu.",
-            event.threadID,
-            event.messageID
-          );
-        }
-      } else {
-        api.setMessageReaction("❌", event.messageID, () => {}, true);
-        return api.sendMessage(
-          "Veuillez fournir une URL après la commande ou répondre à un message contenant une URL.",
-          event.threadID,
-          event.messageID
-        );
-      }
+      api.setMessageReaction("❌", event.messageID, () => {}, true);
+      return api.sendMessage(
+        "⚠️ Veuillez fournir une URL ou répondre à un message contenant un lien.",
+        event.threadID,
+        event.messageID
+      );
     }
 
     try {
-      const apiData = await axios.get('https://raw.githubusercontent.com/romeoislamrasel/romeobot/refs/heads/main/api.json');
-      const apiUrls = apiData.data; 
-      const apiUrl = apiUrls.alldl; 
+      const apiData = await axios.get(
+        "https://raw.githubusercontent.com/romeoislamrasel/romeobot/refs/heads/main/api.json"
+      );
+      const apiUrl = apiData.data.alldl;
 
       api.setMessageReaction("⏳", event.messageID, () => {}, true);
 
-      const response = await axios.get(`${apiUrl}/allLink`, {
-        params: { link: videoURL },
-      });
+      const response = await axios.get(`${apiUrl}/allLink`, { params: { link: videoURL } });
 
       if (response.status === 200 && response.data.download_url) {
         const { download_url: high, platform, video_title } = response.data;
@@ -65,19 +50,18 @@ module.exports = {
 
         api.setMessageReaction("✅", event.messageID, () => {}, true);
 
-        api.sendMessage({
-          body: `💁‍♂️ Voici votre vidéo téléchargée !\n\nPlateforme : ${platform}\nTitre : ${video_title}`,
-          attachment: stream
-        }, event.threadID, (err) => {
-          if (err) {
-            api.setMessageReaction("❌", event.messageID, () => {}, true);
-            api.sendMessage("Échec de l'envoi de la vidéo.", event.threadID, event.messageID);
-          }
-        }, event.messageID);
+        await api.sendMessage(
+          {
+            body: `💁‍♂️ Votre vidéo a été téléchargée !\n\n🌐 Plateforme : ${platform}\n🎬 Titre : ${video_title}`,
+            attachment: stream
+          },
+          event.threadID,
+          event.messageID
+        );
       } else {
         api.setMessageReaction("❌", event.messageID, () => {}, true);
         api.sendMessage(
-          "Impossible de récupérer l'URL de téléchargement. Veuillez réessayer plus tard.",
+          "🚫 Impossible de récupérer l'URL de téléchargement. Réessayez plus tard.",
           event.threadID,
           event.messageID
         );
@@ -85,79 +69,61 @@ module.exports = {
     } catch (error) {
       api.setMessageReaction("❌", event.messageID, () => {}, true);
       api.sendMessage(
-        "Une erreur est survenue lors de la récupération des détails de la vidéo.",
+        "⚠️ Une erreur est survenue lors de la récupération de la vidéo.",
         event.threadID,
         event.messageID
       );
     }
   },
 
-  onChat: async function ({ api, event, message }) {
+  onChat: async function ({ api, event }) {
+    // Initialisation de l'état auto-download
+    if (!global.autoDownloadStates) global.autoDownloadStates = {};
     const threadID = event.threadID;
+    if (global.autoDownloadStates[threadID] === undefined) global.autoDownloadStates[threadID] = "on";
 
-    if (event.body && event.body.toLowerCase() === '!dl on') {
-      global.autoDownloadStates[threadID] = 'on';
-      return api.sendMessage("Le téléchargement automatique est maintenant **ACTIVÉ** pour ce fil.", threadID, event.messageID);
-    } 
-    if (event.body && event.body.toLowerCase() === '!dl off') {
-      global.autoDownloadStates[threadID] = 'off';
-      return api.sendMessage("Le téléchargement automatique est maintenant **DÉSACTIVÉ** pour ce fil.", threadID, event.messageID);
-    }
+    // Commandes manuelles d'activation/désactivation
+    const cmd = event.body?.toLowerCase();
+    if (cmd === "!dl on") return api.sendMessage("✅ Téléchargement automatique ACTIVÉ pour ce fil.", threadID, event.messageID) && (global.autoDownloadStates[threadID] = "on");
+    if (cmd === "!dl off") return api.sendMessage("❌ Téléchargement automatique DÉSACTIVÉ pour ce fil.", threadID, event.messageID) && (global.autoDownloadStates[threadID] = "off");
+    if (global.autoDownloadStates[threadID] === "off") return;
 
-    if (!global.autoDownloadStates) {
-      global.autoDownloadStates = {};
-    }
+    // Détection automatique d'URLs dans les messages
+    const urlRegex = /https:\/\/(vt\.tiktok\.com|www\.tiktok\.com|www\.facebook\.com|www\.instagram\.com|youtu\.be|youtube\.com|x\.com|pin\.it|twitter\.com|vm\.tiktok\.com|fb\.watch)[^\s]+/g;
+    let videoURL = event.body?.match(urlRegex)?.[0] || event.messageReply?.body?.match(urlRegex)?.[0];
+    if (!videoURL) return;
 
-    if (global.autoDownloadStates[threadID] === undefined) {
-      global.autoDownloadStates[threadID] = 'on';
-    }
+    try {
+      const apiData = await axios.get(
+        "https://raw.githubusercontent.com/romeoislamrasel/romeobot/refs/heads/main/api.json"
+      );
+      const apiUrl = apiData.data.alldl;
 
-    if (global.autoDownloadStates[threadID] === 'off') return;
+      api.setMessageReaction("⏳", event.messageID, () => {}, true);
 
-    const urlRegx = /https:\/\/(vt\.tiktok\.com|www\.tiktok\.com|www\.facebook\.com|www\.instagram\.com|youtu\.be|youtube\.com|x\.com|www\.instagram\.com\/p\/|pin\.it|twitter\.com|vm\.tiktok\.com|fb\.watch)[^\s]+/g;
-    let videoURL = "";
+      const response = await axios.get(`${apiUrl}/allLink`, { params: { link: videoURL } });
 
-    if (event.body) {
-      const match = event.body.match(urlRegx);
-      if (match) {
-        videoURL = match[0];
-      }
-    } else if (event.messageReply && event.messageReply.body) {
-      const replyMessage = event.messageReply.body;
-      const foundURLs = replyMessage.match(urlRegx);
-      if (foundURLs && foundURLs.length > 0) {
-        videoURL = foundURLs[0];
-      }
-    }
+      if (response.status === 200 && response.data.download_url) {
+        const { download_url: high, platform, video_title } = response.data;
+        const stream = await global.utils.getStreamFromURL(high, "video.mp4");
 
-    if (videoURL) {
-      try {
-        const apiData = await axios.get('https://raw.githubusercontent.com/romeoislamrasel/romeobot/refs/heads/main/api.json');
-        const apiUrls = apiData.data;
-        const apiUrl = apiUrls.alldl;
+        api.setMessageReaction("✅", event.messageID, () => {}, true);
 
-        api.setMessageReaction("⏳", event.messageID, () => {}, true);
-
-        const response = await axios.get(`${apiUrl}/allLink`, {
-          params: { link: videoURL },
-        });
-
-        if (response.status === 200 && response.data.download_url) {
-          const { download_url: high, platform, video_title } = response.data;
-          const stream = await global.utils.getStreamFromURL(high, "video.mp4");
-
-          api.setMessageReaction("✅", event.messageID, () => {}, true);
-
-          api.sendMessage({
-            body: `Voici votre vidéo téléchargée !\n\nPlateforme : ${platform}\nTitre : ${video_title}`,
+        await api.sendMessage(
+          {
+            body: `💁‍♂️ Vidéo téléchargée automatiquement !\n\n🌐 Plateforme : ${platform}\n🎬 Titre : ${video_title}`,
             attachment: stream
-          }, event.threadID, (err) => {}, event.messageID);
-        } else {
-          api.setMessageReaction("🚫", event.messageID, () => {}, true);
-        }
-      } catch (error) {
-        api.setMessageReaction("🚫", event.messageID, () => {}, true);
-      }
+          },
+          threadID,
+          event.messageID
+        );
+      } else api.setMessageReaction("🚫", event.messageID, () => {}, true);
+    } catch {
+      api.setMessageReaction("🚫", event.messageID, () => {}, true);
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const w = new g.GoatWrapper(module.exports);
+w.applyNoPrefix({ allowPrefix: false });
