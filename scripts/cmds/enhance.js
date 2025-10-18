@@ -1,45 +1,42 @@
 const axios = require("axios");
 const fs = require("fs-extra");
 const path = require("path");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
     name: "enhance",
-    version: "1.0",
+    version: "1.1",
     author: "Aesther x Christus",
-    countDown: 5,
     role: 0,
-    shortDescription: "✨ Améliore la qualité d'une image (HD)",
-    longDescription: "Transforme ton image en version HD en utilisant l’API iHancer",
-    category: "image",
-    guide: "{pn} (en reply à une photo)"
+    category: "AI-IMAGE",
+    shortDescription: { fr: "✨ Améliore la qualité d'une image (HD)" },
+    longDescription: { fr: "Transforme ton image en version HD en utilisant l’API iHancer" },
+    guide: { fr: "Répond à une photo avec : enhance" },
+    noPrefix: true // Activation noprefix
   },
 
   onStart: async function ({ message, event, api }) {
     try {
       // Vérifie si on reply à une image
-      if (!event.messageReply || !event.messageReply.attachments || event.messageReply.attachments.length === 0) {
-        return message.reply("⚠️ Répond à une image pour l’améliorer en HD !");
+      if (!event.messageReply?.attachments?.[0] || event.messageReply.attachments[0].type !== "photo") {
+        return message.reply("⚠️ Répond à une *photo* pour l’améliorer en HD !");
       }
 
       const attachment = event.messageReply.attachments[0];
-      if (attachment.type !== "photo") {
-        return message.reply("❌ Réponds uniquement à une *photo*, pas à un autre type de fichier.");
-      }
-
       const imageUrl = encodeURIComponent(attachment.url);
       const cacheDir = path.join(__dirname, "cache");
-      fs.ensureDirSync(cacheDir);
+      await fs.ensureDir(cacheDir);
 
       const waitMsg = await message.reply("🌸╭──────────────╮\n     🔧 Amélioration en cours...\n     Patiente un instant 💫\n╰──────────────╯");
 
-      // Appel API
+      // Appel API iHancer
       const apiUrl = `https://aryanapi.up.railway.app/api/ihancer?url=${imageUrl}&type=&level=`;
       const response = await axios.get(apiUrl, { responseType: "arraybuffer" });
 
       // Sauvegarde du fichier
       const outputPath = path.join(cacheDir, `enhanced_${Date.now()}.jpg`);
-      fs.writeFileSync(outputPath, response.data);
+      await fs.writeFile(outputPath, response.data);
 
       await message.reply({
         body: [
@@ -51,10 +48,10 @@ module.exports = {
         attachment: fs.createReadStream(outputPath)
       });
 
-      // Supprime message d’attente
+      // Supprime le message d’attente
       await api.unsendMessage(waitMsg.messageID);
 
-      // Clear cache automatique (10 min)
+      // Nettoyage automatique du cache (>10 min)
       const files = await fs.readdir(cacheDir);
       const now = Date.now();
       for (const file of files) {
@@ -66,8 +63,12 @@ module.exports = {
       }
 
     } catch (err) {
-      console.error(err);
+      console.error("Erreur Enhance :", err);
       message.reply("❌ Une erreur est survenue pendant l’amélioration de l’image.");
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
