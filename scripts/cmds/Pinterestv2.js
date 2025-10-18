@@ -1,6 +1,7 @@
 const axios = require("axios");
 const fs = require("fs-extra");
 const path = require("path");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
@@ -15,7 +16,8 @@ module.exports = {
       fr: "Recherche stylisée sur Pinterest. Réponds avec un chiffre (1-10) ou \"all\" pour tout recevoir."
     },
     category: "🌐 Internet",
-    guide: { fr: "{pn} <mot-clé>" }
+    guide: { fr: "{pn} <mot-clé>" },
+    noPrefix: true // Activation noprefix
   },
 
   onStart: async function ({ message, args, event }) {
@@ -52,7 +54,6 @@ module.exports = {
 
   onReply: async function ({ message, event, Reply }) {
     const { author, results } = Reply;
-
     if (event.senderID !== author) return;
 
     const input = event.body.toLowerCase();
@@ -72,7 +73,6 @@ module.exports = {
           attachment: attachments
         });
 
-        // Nettoyage
         for (const file of attachments) fs.unlinkSync(file.path);
 
       } catch (err) {
@@ -82,7 +82,6 @@ module.exports = {
       return;
     }
 
-    // Sinon: sélection individuelle
     const choice = parseInt(input);
     if (isNaN(choice) || choice < 1 || choice > results.length) {
       return message.reply("❗ Envoie un chiffre entre 1 et 10 ou `all`.");
@@ -105,3 +104,7 @@ module.exports = {
     }
   }
 };
+
+// Activation noprefix
+const w = new g.GoatWrapper(module.exports);
+w.applyNoPrefix({ allowPrefix: false });
