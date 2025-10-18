@@ -2,46 +2,31 @@ const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
 const { createCanvas, loadImage } = require("canvas");
-
-const aspectRatioMap = {
-  '1:1': { width: 1024, height: 1024 },
-  '9:7': { width: 1152, height: 896 },
-  '7:9': { width: 896, height: 1152 },
-  '19:13': { width: 1216, height: 832 },
-  '13:19': { width: 832, height: 1216 },
-  '7:4': { width: 1344, height: 768 },
-  '4:7': { width: 768, height: 1344 },
-  '12:5': { width: 1500, height: 625 },
-  '5:12': { width: 640, height: 1530 },
-  '16:9': { width: 1344, height: 756 },
-  '9:16': { width: 756, height: 1344 },
-  '2:3': { width: 768, height: 1152 },
-  '3:2': { width: 1152, height: 768 }
-};
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
     name: "fastx",
     author: "Christus x Aesther",
-    version: "1.2",
+    version: "1.3",
     cooldowns: 5,
     role: 0,
-    shortDescription: "Génère des images IA",
-    longDescription: "Génère 4 images à partir d'un prompt et les combine en une grille.",
-    category: "𝗔𝗜 & 𝗚𝗣𝗧",
-    guide: "{p}fastx <prompt> [--ar <ratio>]"
+    shortDescription: { fr: "Génère 4 images IA et les combine en une grille" },
+    longDescription: { fr: "Crée 4 images à partir d'un prompt et les fusionne automatiquement en une seule image." },
+    category: "AI-IMAGE",
+    guide: { fr: "Réponds à un message ou tape : fastx <prompt> [--ar <ratio>]" },
+    noPrefix: true // Activation noprefix
   },
 
   onStart: async function ({ message, args, api, event }) {
     const startTime = Date.now();
-    const userID = event.senderID;
-    const waitingMessage = await message.reply(`Fastx génère vos images...`);
+    const waitingMsg = await message.reply("⏳ Génération de vos images, veuillez patienter...");
 
     try {
       let prompt = "";
       let ratio = "1:1";
 
-      // Analyse des arguments
+      // Analyse des arguments pour le prompt et le ratio
       for (let i = 0; i < args.length; i++) {
         if (args[i] === "--ar" && args[i + 1]) {
           ratio = args[i + 1];
@@ -50,39 +35,29 @@ module.exports = {
           prompt += args[i] + " ";
         }
       }
-
       prompt = prompt.trim();
-      const urls = new Array(4).fill(`https://www.ai4chat.co/api/image/generate?prompt=${encodeURIComponent(prompt)}&aspect_ratio=${encodeURIComponent(ratio)}`);
+      if (!prompt) return message.reply("❌ | Veuillez fournir un prompt pour générer les images.");
 
-      const cacheFolderPath = path.join(__dirname, "/tmp");
-      if (!fs.existsSync(cacheFolderPath)) fs.mkdirSync(cacheFolderPath);
+      const cacheDir = path.join(__dirname, "/tmp");
+      if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
 
       // Télécharge les 4 images
-      const images = await Promise.all(
-        urls.map(async (url, index) => {
-          const { data } = await axios.get(url);
-          const imageUrl = data.image_link;
-
-          const imagePath = path.join(cacheFolderPath, `fastx_${index + 1}.jpg`);
-          const writer = fs.createWriteStream(imagePath);
-
-          const imageStream = await axios({
-            url: imageUrl,
-            method: "GET",
-            responseType: "stream"
-          });
-
-          imageStream.data.pipe(writer);
-          await new Promise((resolve, reject) => {
-            writer.on("finish", resolve);
-            writer.on("error", reject);
-          });
-
-          return imagePath;
-        })
+      const imageUrls = new Array(4).fill(
+        `https://www.ai4chat.co/api/image/generate?prompt=${encodeURIComponent(prompt)}&aspect_ratio=${encodeURIComponent(ratio)}`
       );
 
-      // Charge et fusionne les images
+      const images = await Promise.all(imageUrls.map(async (url, index) => {
+        const { data } = await axios.get(url);
+        const imgUrl = data.image_link;
+        const imgPath = path.join(cacheDir, `fastx_${index + 1}.jpg`);
+        const writer = fs.createWriteStream(imgPath);
+        const stream = await axios({ url: imgUrl, method: "GET", responseType: "stream" });
+        stream.data.pipe(writer);
+        await new Promise((resolve, reject) => { writer.on("finish", resolve); writer.on("error", reject); });
+        return imgPath;
+      }));
+
+      // Fusionne les images en une grille 2x2
       const loadedImages = await Promise.all(images.map(img => loadImage(img)));
       const width = loadedImages[0].width;
       const height = loadedImages[0].height;
@@ -94,16 +69,14 @@ module.exports = {
       ctx.drawImage(loadedImages[2], 0, height, width, height);
       ctx.drawImage(loadedImages[3], width, height, width, height);
 
-      const combinedImagePath = path.join(cacheFolderPath, `fastx_combined.jpg`);
+      const combinedImagePath = path.join(cacheDir, `fastx_combined.jpg`);
       fs.writeFileSync(combinedImagePath, canvas.toBuffer("image/jpeg"));
 
-      api.unsendMessage(waitingMessage.messageID);
+      await api.unsendMessage(waitingMsg.messageID);
 
-      const endTime = Date.now();
-      const duration = ((endTime - startTime) / 1000).toFixed(2);
-
+      const duration = ((Date.now() - startTime) / 1000).toFixed(2);
       const reply = await message.reply({
-        body: `❏ U1, U2, U3, U4\nTemps de génération : ${duration}s`,
+        body: `✅ | Images générées pour : "${prompt}"\nTemps de génération : ${duration}s\nRéponds avec U1, U2, U3 ou U4 pour voir chaque image individuellement.`,
         attachment: fs.createReadStream(combinedImagePath)
       });
 
@@ -114,32 +87,32 @@ module.exports = {
         author: event.senderID
       });
 
-    } catch (error) {
-      console.error("Erreur lors de la génération de l'image :", error.message);
-      api.unsendMessage(waitingMessage.messageID);
+    } catch (err) {
+      console.error("Erreur Fastx :", err.message);
+      await api.unsendMessage(waitingMsg.messageID);
       message.reply("❌ | Échec de la génération des images.");
     }
   },
 
-  onReply: async function ({ api, event, Reply, args, message }) {
-    const reply = args[0].toLowerCase();
-    const { author, messageID, images } = Reply;
-
+  onReply: async function ({ message, event, Reply, args }) {
+    const replyCmd = args[0]?.toLowerCase();
+    const { author, images } = Reply;
     if (event.senderID !== author) return;
 
     try {
-      const validIndexes = ["u1", "u2", "u3", "u4"];
-      if (validIndexes.includes(reply)) {
-        const selectedIndex = parseInt(reply.slice(1)) - 1;
-        await message.reply({
-          attachment: fs.createReadStream(images[selectedIndex])
-        });
-      } else {
-        message.reply("❌ | Action invalide. Utilisez U1, U2, U3 ou U4.");
-      }
+      const valid = ["u1", "u2", "u3", "u4"];
+      if (!valid.includes(replyCmd)) return message.reply("❌ | Action invalide. Utilise U1, U2, U3 ou U4.");
+
+      const index = parseInt(replyCmd.slice(1)) - 1;
+      await message.reply({ attachment: fs.createReadStream(images[index]) });
+
     } catch (err) {
-      console.error("Erreur lors de la réponse :", err.message);
-      message.reply("❌ | Échec de l'envoi de l'image sélectionnée.");
+      console.error("Erreur onReply Fastx :", err.message);
+      message.reply("❌ | Impossible d'envoyer l'image sélectionnée.");
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
