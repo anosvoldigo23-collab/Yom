@@ -1,186 +1,103 @@
-const header = `👑 𝐕𝐎𝐋𝐃𝐘 𝗩𝗜𝗣 𝗨𝗧𝗜𝗟𝗜𝗦𝗔𝗧𝗘𝗨𝗥𝗦 👑`;
+const fs = require("fs-extra");
+const g = require("fca-aryan-nix"); // GoatWrapper pour NOPREFIX
 
-const fs = require("fs");
-
+const header = `👑 𝐕𝐎𝐋𝐃𝐘 𝗩𝗜𝗣 𝗨𝗦𝗘𝗥𝗦 👑`;
 const vipFilePath = "vip.json";
-const changelogFilePath = "changelog.json"; // Chemin vers le fichier changelog
+const changelogFilePath = "changelog.json";
 
+// 🔹 Fonctions utilitaires
 function loadVIPData() {
   try {
-    const data = fs.readFileSync(vipFilePath);
-    return JSON.parse(data);
+    return fs.readJsonSync(vipFilePath);
   } catch (err) {
-    console.error("Erreur lors du chargement des données VIP :", err);
     return {};
   }
 }
 
 function saveVIPData(data) {
   try {
-    fs.writeFileSync(vipFilePath, JSON.stringify(data, null, 2));
+    fs.writeJsonSync(vipFilePath, data, { spaces: 2 });
   } catch (err) {
-    console.error("Erreur lors de l'enregistrement des données VIP :", err);
+    console.error("Erreur en sauvegardant VIP:", err);
   }
 }
 
 function loadChangelog() {
   try {
-    const data = fs.readFileSync(changelogFilePath);
-    return JSON.parse(data);
+    return fs.readJsonSync(changelogFilePath);
   } catch (err) {
-    console.error("Erreur lors du chargement du changelog :", err);
     return {};
   }
 }
 
+// 💎 Commande VIP NOPREFIX
 module.exports = {
   config: {
     name: "vip",
-    version: "1.0",
+    version: "2.0",
     author: "Christus x Aesther",
     role: 2,
     category: "Configuration",
-    guide: {
-      fr: `!vip add <uid> - Ajouter un utilisateur à la liste VIP
-!vip rm <uid> - Retirer un utilisateur de la liste VIP
-!vip list - Afficher la liste des utilisateurs VIP
-!vip changelog - Voir l'historique des mises à jour`
-    },
+    shortDescription: "✨ Gestion des utilisateurs VIP",
+    longDescription: "Ajoute, retire, liste les VIP et consulte le changelog du système.",
+    guide: `add <uid> - Ajoute un utilisateur à la VIP
+rm <uid> - Retire un utilisateur de la VIP
+list - Affiche tous les VIP
+changelog - Montre les nouveautés`,
+    usePrefix: false,
+    noPrefix: true
   },
 
-  onStart: async function ({ api, event, args, message, usersData }) {
+  onStart: async function({ message, args, usersData, api }) {
     const subcommand = args[0];
+    if (!subcommand) return;
 
-    if (!subcommand) {
-      return;
-    }
-
-    // Charger les données VIP depuis le fichier JSON
     let vipData = loadVIPData();
 
-    // ➕ Ajouter un utilisateur à la liste VIP
+    // ➕ Ajouter VIP
     if (subcommand === "add") {
-      const uidToAdd = args[1];
-      if (uidToAdd) {
-        const userData = await usersData.get(uidToAdd);
-        if (userData) {
-          const userName = userData.name || "Utilisateur inconnu";
+      const uid = args[1];
+      if (!uid) return message.reply(`${header}\n⚠️ Veuillez fournir un UID.`);
 
-          message.reply(`${header}
-${userName} (${uidToAdd}) a été ajouté avec succès à la liste VIP.`);
+      const user = await usersData.get(uid);
+      if (!user) return message.reply(`${header}\n❌ Utilisateur introuvable pour l'UID ${uid}.`);
 
-          api.sendMessage(`${header}
-Félicitations ${userName} (${uidToAdd}) 🎉
-Vous avez été ajouté à la liste VIP. Profitez des fonctionnalités exclusives !`, uidToAdd);
+      vipData[uid] = true;
+      saveVIPData(vipData);
 
-          // Notification aux autres VIP
-          Object.keys(vipData).forEach(async (uid) => {
-            if (uid !== uidToAdd) {
-              const vipUserData = await usersData.get(uid);
-              if (vipUserData) {
-                const vipUserName = vipUserData.name || "Utilisateur inconnu";
-                api.sendMessage(`${header}
-Bonjour à tous les VIP 👑
-Accueillons notre nouveau VIP :
-Nom : ${userName} (${uidToAdd})
-Utilisez la commande 'vipnoti' si vous souhaitez lui envoyer un message !`, uid);
-              }
-            }
-          });
+      message.reply(`${header}\n✅ ${user.name} (${uid}) est désormais VIP ! 🎉`);
+      api.sendMessage(`${header}\n🎉 Félicitations ${user.name}, tu es VIP ! Profite des fonctionnalités exclusives !`, uid);
 
-          vipData[uidToAdd] = true;
-          saveVIPData(vipData);
-        } else {
-          message.reply(`${header}
-Utilisateur avec l'UID ${uidToAdd} introuvable.`);
-        }
-      } else {
-        message.reply(`${header}
-Veuillez fournir un UID à ajouter à la liste VIP.`);
-      }
-
-    // ❌ Supprimer un utilisateur de la liste VIP
+    // ❌ Retirer VIP
     } else if (subcommand === "rm") {
-      const uidToRemove = args[1];
-      if (uidToRemove && vipData[uidToRemove]) {
-        delete vipData[uidToRemove];
-        saveVIPData(vipData);
-        const userData = await usersData.get(uidToRemove);
-        if (userData) {
-          const userName = userData.name || "Utilisateur inconnu";
-          message.reply(`${header}
-${userName} (${uidToRemove}) a été retiré de la liste VIP.`);
+      const uid = args[1];
+      if (!uid || !vipData[uid]) return message.reply(`${header}\n⚠️ UID invalide ou non VIP.`);
 
-          api.sendMessage(`${header}
-Désolé ${userName} (${uidToRemove}), vous avez été retiré de la liste VIP.`, uidToRemove);
+      const user = await usersData.get(uid);
+      delete vipData[uid];
+      saveVIPData(vipData);
 
-          // Informer les autres VIP
-          Object.keys(vipData).forEach(async (uid) => {
-            if (uid !== uidToRemove) {
-              const vipUserData = await usersData.get(uid);
-              if (vipUserData) {
-                const vipUserName = vipUserData.name || "Utilisateur inconnu";
-                api.sendMessage(`${header}
-Info VIP 📢
-${userName} (${uidToRemove}) a été retiré de la liste VIP.`, uid);
-              }
-            }
-          });
-        } else {
-          message.reply(`${header}
-Utilisateur avec l'UID ${uidToRemove} introuvable.`);
-        }
-      } else {
-        message.reply(`${header}
-Veuillez fournir un UID valide à retirer de la liste VIP.`);
-      }
+      message.reply(`${header}\n✅ ${user.name} (${uid}) a été retiré de la liste VIP.`);
+      api.sendMessage(`${header}\n❌ ${user.name}, tu n'es plus VIP.`, uid);
 
-    // 📜 Afficher la liste des utilisateurs VIP
+    // 📜 Liste des VIP
     } else if (subcommand === "list") {
-      const vipList = await Promise.all(Object.keys(vipData).map(async (uid) => {
-        const userData = await usersData.get(uid);
-        if (userData) {
-          const userName = userData.name || "Utilisateur inconnu";
-          return `• ${userName} (${uid})`;
-        } else {
-          return `• Utilisateur inconnu (${uid})`;
-        }
+      const vipList = await Promise.all(Object.keys(vipData).map(async uid => {
+        const user = await usersData.get(uid);
+        return `• ${user?.name || "Inconnu"} (${uid})`;
       }));
 
-      if (vipList.length > 0) {
-        message.reply(`${header}
+      message.reply(`${header}\n📝 Liste des VIP:\n\n${vipList.join("\n") || "Aucun VIP enregistré."}`);
 
-» Nos utilisateurs VIP respectés :
-
-${vipList.join("\n")}
-
-Utilisez !vip add/rm <uid> pour ajouter ou retirer des participants.`);
-      } else {
-        message.reply(`${header}
-La liste VIP est actuellement vide.`);
-      }
-
-    // 📝 Afficher le changelog
+    // 📝 Changelog
     } else if (subcommand === "changelog") {
-      const changelogData = loadChangelog();
-
-      if (changelogData) {
-        const changelogEntries = Object.keys(changelogData).filter((version) => parseFloat(version) >= 1.0);
-
-        if (changelogEntries.length > 0) {
-          const changelogText = changelogEntries.map((version) => `Version ${version} : ${changelogData[version]}`).join('\n');
-          message.reply(`${header}
-Version actuelle : ${module.exports.config.version}
-📝 Journal des modifications :
-${changelogText}`);
-        } else {
-          message.reply(`${header}
-Version actuelle : ${module.exports.config.version}
-📝 Aucun changelog trouvé à partir de la version 1.0.`);
-        }
-      } else {
-        message.reply("⚠️ Les données du changelog ne sont pas disponibles.");
-      }
+      const changelog = loadChangelog();
+      const entries = Object.keys(changelog).map(v => `Version ${v} : ${changelog[v]}`).join("\n");
+      message.reply(`${header}\n📄 Changelog :\n${entries || "Aucun changement enregistré."}`);
     }
   }
 };
+
+// ⚡ Activation NOPREFIX
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
