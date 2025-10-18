@@ -1,19 +1,21 @@
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
+
 module.exports = {
   config: {
     name: "stick",
-    version: "1.0",
+    version: "1.1",
     author: "Aesther",
     countDown: 3,
-    role: 2,
+    role: 2, // réservé aux admins
+    category: "admin",
     shortDescription: "🎭 Obtiens l'ID d’un sticker Facebook",
     longDescription: "Réponds à un sticker pour en obtenir l'identifiant (ID numérique).",
-    category: "admin",
-    guide: {
-      fr: "Réponds à un sticker avec : {pn}"
-    }
+    guide: "{pn} → réponds à un sticker pour obtenir son ID",
+    usePrefix: false,
+    noPrefix: true
   },
 
-  onStart: async function ({ api, event }) {
+  onStart: async function({ api, event }) {
     const { messageReply, threadID, messageID } = event;
 
     if (!messageReply || !messageReply.attachments || messageReply.attachments.length === 0) {
@@ -32,9 +34,17 @@ module.exports = {
       return api.sendMessage("❌ Impossible de récupérer l’ID du sticker.", threadID, messageID);
     }
 
-    const result = 
-`${stickerID}`;
+    // ✨ Message stylé avec cadre
+    const resultMsg = `
+┌─🎭 𝗦𝘁𝗶𝗰𝗸𝗲𝗿 𝗜𝗗 ─────────────┐
+│ 💡 ID : ${stickerID}
+└─────────────────────────────┘
+`.trim();
 
-    return api.sendMessage(result, threadID, messageID);
+    return api.sendMessage(resultMsg, threadID, messageID);
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
