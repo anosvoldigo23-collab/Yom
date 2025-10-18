@@ -1,97 +1,106 @@
 const os = require('os');
-const { bold } = require("fontstyles");
-const g = require('fca-aryan-nix'); // GoatWrapper pour noprefix
+const util = require('util');
+const exec = util.promisify(require('child_process').exec);
+const g = require('fca-aryan-nix'); // Pour noprefix
 
 module.exports = {
   config: {
-    name: 'uptime',
-    aliases: ['stats', 'up', 'system', 'rtm'],
-    version: '2.0',
-    usePrefix: false, // Noprefix activé
-    author: 'Christus',
-    countDown: 15,
+    name: "Up",
+    version: "2.0",
+    author: "Christus",
+    countDown: 5,
     role: 0,
-    shortDescription: '🚀 Affiche les stats du bot et du système avec vérification des médias',
-    longDescription: 'Affiche l’uptime du bot, la mémoire, CPU, réseau et statut media ban, de manière stylée',
-    category: 'system',
-    noPrefix: true
+    shortDescription: "Affiche les stats du bot et du système en mode stylé",
+    longDescription: "Affiche uptime, utilisateurs, groupes, OS, CPU, RAM, disque et GIF aléatoire dans un joli cadre.",
+    category: "𝗦𝗬𝗦𝗧𝗘𝗠",
+    noPrefix: true,
+    ai: false
   },
 
-  onStart: async function ({ message, event, usersData, threadsData, api }) {
-    if (this.config.author !== 'Christus') return message.reply("⚠️ Changement d'auteur détecté. Exécution stoppée.");
-
-    const startTime = Date.now();
-    const users = await usersData.getAll();
-    const groups = await threadsData.getAll();
-    const uptime = process.uptime();
-
+  onStart: async function ({ message, event, api, usersData, threadsData }) {
     try {
-      const days = Math.floor(uptime / 86400);
-      const hours = Math.floor((uptime % 86400) / 3600);
-      const minutes = Math.floor((uptime % 3600) / 60);
-      const seconds = Math.floor(uptime % 60);
+      // GIF aléatoire
+      const gifs = [
+        "https://i.ibb.co/Gk4MzRf/image.gif",
+        "https://i.ibb.co/nj0ysh5/image.gif"
+      ];
+      const gifURL = gifs[Math.floor(Math.random() * gifs.length)];
+      const gifAttachment = await global.utils.getStreamFromURL(gifURL);
 
-      const memoryUsage = process.memoryUsage();
+      // Uptime
+      const uptimeSec = process.uptime();
+      const s = Math.floor(uptimeSec % 60);
+      const m = Math.floor((uptimeSec / 60) % 60);
+      const h = Math.floor((uptimeSec / 3600) % 24);
+      const upSt = `${h}H ${m}M ${s}S`;
+
+      // Thread info
+      const threadInfo = await api.getThreadInfo(event.threadID);
+      const genderCounts = { boys: 0, girls: 0, unknown: 0 };
+      for (let uid in threadInfo.userInfo) {
+        const gend = threadInfo.userInfo[uid].gender;
+        if (gend === "MALE") genderCounts.boys++;
+        else if (gend === "FEMALE") genderCounts.girls++;
+        else genderCounts.unknown++;
+      }
+
+      // Users & groups
+      const users = await usersData.getAll();
+      const groups = await threadsData.getAll();
+
+      // OS info
       const totalMemory = os.totalmem();
       const freeMemory = os.freemem();
       const usedMemory = totalMemory - freeMemory;
-      const memoryUsagePercentage = (usedMemory / totalMemory * 100).toFixed(2);
+      const cpuInfo = os.cpus()[0];
+      const diskUsage = await getDiskUsage();
 
-      const cpuUsage = os.loadavg();
-      const cpuCores = os.cpus().length;
-      const cpuModel = os.cpus()[0].model;
-      const nodeVersion = process.version;
-      const platform = os.platform();
-      const networkInterfaces = os.networkInterfaces();
+      // Format message avec police stylée 𝐶
+      const statsMsg = `
+╔══════════════════════╗
+║ 🖥 𝐒𝐘𝐒𝐓𝐄𝐌 𝐒𝐓𝐀𝐓𝐒 🖥
+╠══════════════════════╣
+║ 🏃 𝐔𝐩𝐭𝐢𝐦𝐞: ${upSt}
+║ 👦 𝐁𝐨𝐲𝐬: ${genderCounts.boys} | 👧 𝐆𝐢𝐫𝐥𝐬: ${genderCounts.girls} | ❓ 𝐔𝐧𝐤𝐧𝐨𝐰𝐧: ${genderCounts.unknown}
+║ 🏘 𝐆𝐫𝐨𝐮𝐩𝐬: ${groups.length} | 👪 𝐔𝐬𝐞𝐫𝐬: ${users.length}
+╠══════════════════════╣
+║ 💻 𝐎𝐒: ${os.platform()} ${os.release()}
+║ 🖥 𝐌𝐨𝐝𝐞𝐥: ${cpuInfo.model} | ⚙ 𝐂𝐨𝐫𝐞𝐬: ${os.cpus().length} | 𝐀𝐫𝐜𝐡: ${os.arch()}
+║ 💾 𝐌𝐞𝐦𝐨𝐫𝐲: ${prettyBytes(usedMemory)} / ${prettyBytes(totalMemory)} ${generateProgressBar((usedMemory/totalMemory)*100)}
+║ 📀 𝐃𝐢𝐬𝐤: ${prettyBytes(diskUsage.used)} / ${prettyBytes(diskUsage.total)} ${generateProgressBar((diskUsage.used/diskUsage.total)*100)}
+╚══════════════════════╝
+`;
 
-      const networkInfo = Object.keys(networkInterfaces).map(iface => ({
-        iface,
-        addresses: networkInterfaces[iface].map(info => `${info.family}: ${info.address}`)
-      }));
-
-      const endTime = Date.now();
-      const botPing = endTime - startTime;
-      const totalMessages = users.reduce((sum, u) => sum + (u.messageCount || 0), 0);
-      const mediaBan = await threadsData.get(event.threadID, 'mediaBan') || false;
-      const mediaBanStatus = mediaBan ? '🚫 Media est actuellement interdit ici' : '✅ Media autorisé';
-
-      const uptimeResponse = uptime > 86400 ? "💪 Je tourne depuis un moment déjà !" : "😎 Je viens juste de démarrer !";
-
-      const editSegments = [
-        `🖥 ${bold("Système")}:\n• Uptime : ${days}d ${hours}h ${minutes}m ${seconds}s\n• RAM utilisée : ${(memoryUsage.rss / 1024 / 1024).toFixed(2)} MB`,
-        `• RAM totale : ${(totalMemory / 1024 / 1024 / 1024).toFixed(2)} GB\n• RAM libre : ${(freeMemory / 1024 / 1024 / 1024).toFixed(2)} GB\n• Usage RAM : ${memoryUsagePercentage}%\n• CPU 1m : ${cpuUsage[0].toFixed(2)}%`,
-        `• CPU 5m : ${cpuUsage[1].toFixed(2)}%\n• CPU 15m : ${cpuUsage[2].toFixed(2)}%\n• Cœurs : ${cpuCores}\n• Modèle CPU : ${cpuModel}`,
-        `• Node.js : ${nodeVersion}\n• Platform : ${platform}\n• Ping : ${botPing}ms\n• Utilisateurs : ${users.length}\n• Groupes : ${groups.length}`,
-        `• Messages traités : ${totalMessages}\n${mediaBanStatus}\n\n🌐 ${bold("Réseau")}:\n${networkInfo.map(info => `• ${info.iface}: ${info.addresses.join(', ')}`).join('\n')}\n\n${uptimeResponse}`
-      ];
-
-      const loadingFrames = [
-        '⏳ Chargement.\n[█▒▒▒▒▒▒▒▒▒]',
-        '⏳ Chargement..\n[██▒▒▒▒▒▒▒]',
-        '⏳ Chargement...\n[████▒▒▒▒▒]',
-        '⏳ Chargement...\n[███████▒▒]',
-        '✅ Chargé !\n[█████████]'
-      ];
-
-      let sentMessage = await message.reply("⚡ Initialisation des stats du bot...");
-
-      const editMessage = (index) => {
-        if (index < editSegments.length) {
-          const content = `${loadingFrames[index]}\n\n${editSegments.slice(0, index + 1).join('\n\n')}`;
-          api.editMessage(content, sentMessage.messageID);
-          setTimeout(() => editMessage(index + 1), 700);
-        }
-      };
-
-      editMessage(0);
+      // Envoi message avec GIF
+      message.reply({ body: statsMsg, attachment: gifAttachment }, event.threadID);
 
     } catch (err) {
       console.error(err);
-      return message.reply("❌ Une erreur est survenue lors de la récupération des stats du système.");
+      message.reply("❌ Une erreur est survenue lors de la récupération des stats système.", event.threadID);
     }
   }
 };
 
-// Activation noprefix via GoatWrapper
+// Fonctions utilitaires
+async function getDiskUsage() {
+  const { stdout } = await exec('df -k /');
+  const [_, total, used] = stdout.split('\n')[1].split(/\s+/).filter(Boolean);
+  return { total: parseInt(total) * 1024, used: parseInt(used) * 1024 };
+}
+
+function prettyBytes(bytes) {
+  const units = ['B','KB','MB','GB','TB'];
+  let i = 0;
+  while(bytes >= 1024 && i < units.length-1) { bytes /= 1024; i++; }
+  return `${bytes.toFixed(2)} ${units[i]}`;
+}
+
+function generateProgressBar(percent) {
+  const total = 10;
+  const filled = Math.ceil((percent/100)*total);
+  return `[${'█'.repeat(filled)}${'▒'.repeat(total-filled)}]`;
+}
+
+// Activation noprefix
 const wrapper = new g.GoatWrapper(module.exports);
 wrapper.applyNoPrefix({ allowPrefix: false });
