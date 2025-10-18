@@ -1,61 +1,84 @@
-const axios = require("axios"); // Importe la bibliothèque axios pour les requêtes HTTP
-const fs = require("fs-extra"); // Importe la bibliothèque fs-extra pour les opérations de fichiers (plus complète que fs de base)
+const axios = require("axios");
+const fs = require("fs-extra");
+const path = require("path");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
-    name: "pair", // Nom de la commande (pour l'appeler)
-    aliases: [], // Alias de la commande (noms alternatifs)
-    version: "1.0", // Version de la commande
-    author: "Christus x Aesther", // Auteur de la commande
-    countDown: 5, // Délai d'attente en secondes avant que la commande puisse être réutilisée
-    role: 0, // Rôle requis pour utiliser la commande (0 = tous les utilisateurs)
-    shortDescription: "", // Courte description de la commande
-    longDescription: "", // Description détaillée de la commande
-    category: "love", // Catégorie de la commande (ex: amour, utilitaire, etc.)
-    guide: "{pn}" // Instructions d'utilisation de la commande (remplacé par le préfixe du bot)
+    name: "pair",
+    aliases: [],
+    version: "1.0",
+    author: "Christus x Aesther",
+    countDown: 5,
+    role: 0,
+    category: "love",
+    shortDescription: "🥰 Fait matcher deux utilisateurs",
+    longDescription: "Calcule un taux de compatibilité aléatoire et envoie un message avec avatars et GIF d'amour",
+    guide: "{pn}",
+    usePrefix: false,
+    noPrefix: true
   },
 
-  onStart: async function({ api, event, threadsData, usersData }) {
-    // Fonction exécutée lorsque la commande est appelée
+  onStart: async function({ api, event, usersData }) {
+    const { threadID, messageID, senderID } = event;
+    const { participantIDs } = await api.getThreadInfo(threadID);
 
-    const { threadID, messageID, senderID } = event; // Extrait les informations de l'événement (ID du fil de discussion, ID du message, ID de l'expéditeur)
-    const { participantIDs } = await api.getThreadInfo(threadID); // Récupère les ID des participants du fil de discussion
-    var tle = Math.floor(Math.random() * 101); // Génère un nombre aléatoire entre 0 et 100 (pour le pourcentage de compatibilité)
-    var namee = (await usersData.get(senderID)).name // Récupère le nom de l'expéditeur
-    const botID = api.getCurrentUserID(); // Récupère l'ID du bot
-    const listUserID = participantIDs.filter(ID => ID != botID && ID != senderID); // Filtre la liste des ID des participants pour ne garder que les autres utilisateurs (pas le bot ni l'expéditeur)
-    var id = listUserID[Math.floor(Math.random() * listUserID.length)]; // Choisit aléatoirement un ID d'un autre utilisateur
-    var name = (await usersData.get(id)).name // Récupère le nom de l'utilisateur sélectionné
+    // ID bot et liste des autres utilisateurs
+    const botID = api.getCurrentUserID();
+    const others = participantIDs.filter(id => id !== botID && id !== senderID);
+    if (!others.length) return api.sendMessage("⚠️ Aucun partenaire disponible pour matcher.", threadID, messageID);
 
-    var arraytag = []; // Crée un tableau pour les mentions (pour taguer les utilisateurs dans le message)
-    arraytag.push({ id: senderID, tag: namee }); // Ajoute l'expéditeur au tableau des mentions
-    arraytag.push({ id: id, tag: name }); // Ajoute l'utilisateur sélectionné au tableau des mentions
+    // Sélection aléatoire
+    const targetID = others[Math.floor(Math.random() * others.length)];
 
-    // Récupère l'avatar de l'expéditeur depuis Facebook
-    let Avatar = (await axios.get(`https://graph.facebook.com/${senderID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, { responseType: "arraybuffer" })).data;
-    fs.writeFileSync(__dirname + "/cache/avt.png", Buffer.from(Avatar, "utf-8")); // Enregistre l'avatar dans un fichier temporaire
+    // Noms
+    const senderName = (await usersData.get(senderID)).name;
+    const targetName = (await usersData.get(targetID)).name;
 
-    // Récupère une image GIF depuis une URL
-    let gifLove = (await axios.get(`https://i.ibb.co/y4dWfQq/image.gif`, { responseType: "arraybuffer" })).data;
-    fs.writeFileSync(__dirname + "/cache/giflove.png", Buffer.from(gifLove, "utf-8")); // Enregistre le GIF dans un fichier temporaire
+    // Taux de compatibilité aléatoire
+    const lovePercent = Math.floor(Math.random() * 101);
 
-    // Récupère l'avatar de l'utilisateur sélectionné depuis Facebook
-    let Avatar2 = (await axios.get(`https://graph.facebook.com/${id}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, { responseType: "arraybuffer" })).data;
-    fs.writeFileSync(__dirname + "/cache/avt2.png", Buffer.from(Avatar2, "utf-8")); // Enregistre l'avatar dans un fichier temporaire
+    // Mentions
+    const mentions = [
+      { id: senderID, tag: senderName },
+      { id: targetID, tag: targetName }
+    ];
 
-    var imglove = []; // Crée un tableau pour les pièces jointes (images)
+    // Préparer les images
+    const cacheDir = path.join(__dirname, "cache");
+    await fs.ensureDir(cacheDir);
 
-    imglove.push(fs.createReadStream(__dirname + "/cache/avt.png")); // Ajoute l'avatar de l'expéditeur en pièce jointe
-    imglove.push(fs.createReadStream(__dirname + "/cache/giflove.png")); // Ajoute le GIF en pièce jointe
-    imglove.push(fs.createReadStream(__dirname + "/cache/avt2.png")); // Ajoute l'avatar de l'utilisateur sélectionné en pièce jointe
+    const avatar1 = await axios.get(`https://graph.facebook.com/${senderID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, { responseType: "arraybuffer" });
+    fs.writeFileSync(path.join(cacheDir, "avt1.png"), avatar1.data);
 
-    // Crée le message à envoyer
-    var msg = {
-      body: `🥰 Appariement réussi !\n💌 Je vous souhaite à tous les deux cent ans de bonheur\n💕 Taux de compatibilité: ${tle}%\n${namee} 💓 ${name}`, // Corps du message
-      mentions: arraytag, // Mentions des utilisateurs
-      attachment: imglove // Pièces jointes (images)
-    };
+    const avatar2 = await axios.get(`https://graph.facebook.com/${targetID}/picture?width=512&height=512&access_token=6628568379%7Cc1e620fa708a1d5696fb991c1bde5662`, { responseType: "arraybuffer" });
+    fs.writeFileSync(path.join(cacheDir, "avt2.png"), avatar2.data);
 
-    return api.sendMessage(msg, event.threadID, event.messageID); // Envoie le message dans le fil de discussion
+    const loveGif = await axios.get("https://i.ibb.co/y4dWfQq/image.gif", { responseType: "arraybuffer" });
+    fs.writeFileSync(path.join(cacheDir, "love.gif"), loveGif.data);
+
+    const attachments = [
+      fs.createReadStream(path.join(cacheDir, "avt1.png")),
+      fs.createReadStream(path.join(cacheDir, "love.gif")),
+      fs.createReadStream(path.join(cacheDir, "avt2.png"))
+    ];
+
+    // Message stylé
+    const messageBody = `
+╔══════════════════════
+║ 🥰 𝐀𝐩𝐩𝐚𝐫𝐢𝐞𝐦𝐞𝐧𝐭 𝐑𝐞́𝐮𝐬𝐬𝐢 !
+╠══════════════════════
+║ 💌 ${senderName} 💓 ${targetName}
+║ 💕 Taux de compatibilité : ${lovePercent}%
+║ 🥂 Je vous souhaite à tous les deux cent ans de bonheur !
+╚══════════════════════
+    `.trim();
+
+    // Envoyer le message
+    return api.sendMessage({ body: messageBody, mentions, attachment: attachments }, threadID, messageID);
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
