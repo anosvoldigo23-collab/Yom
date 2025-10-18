@@ -1,56 +1,57 @@
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
     name: "fastflux",
+    version: "1.1",
     author: "Christus",
-    version: "1.0",
-    cooldowns: 0,
     role: 0,
-    shortDescription: "Génère une image avec le modèle fast flux à partir d'un prompt.",
-    longDescription: "Crée une image en utilisant le modèle fast flux avec le prompt fourni.",
-    category: "Génération d'image",
-    guide: "{p}sdxl <prompt>",
+    countDown: 5,
+    category: "AI-IMAGE",
+    shortDescription: { fr: "Génère une image avec le modèle Fast Flux à partir d'un prompt" },
+    longDescription: { fr: "Crée une image en utilisant le modèle Fast Flux selon le prompt fourni." },
+    guide: { fr: "Réponds à un message ou tape : fastflux <prompt>" },
+    noPrefix: true // Activation noprefix
   },
-  onStart: async function ({ message, args, api, event }) {
-    const obfuscatedAuthor = String.fromCharCode(114, 101, 100, 119, 97, 110);
-    if (this.config.author !== obfuscatedAuthor) {
-      return api.sendMessage("Vous n'êtes pas autorisé à modifier le nom de l'auteur.", event.threadID, event.messageID);
-    }
 
+  onStart: async function ({ message, args, event }) {
     const prompt = args.join(" ");
-    if (!prompt) {
-      return api.sendMessage("❌ | Vous devez fournir un prompt.", event.threadID);
-    }
+    if (!prompt) return message.reply("❌ | Vous devez fournir un prompt pour générer l'image.");
 
-    api.sendMessage("🔄 | Génération de votre image, veuillez patienter...", event.threadID, event.messageID);
+    const waitMsg = await message.reply("🔄 | Génération de votre image, veuillez patienter...");
 
     try {
-      const sdxlApiUrl = `http://65.109.80.126:20511/api/fastfluximg?text=${encodeURIComponent(prompt)}`;
-      const response = await axios.get(sdxlApiUrl, {
-        responseType: "arraybuffer",
-      });
+      const apiUrl = `http://65.109.80.126:20511/api/fastfluximg?text=${encodeURIComponent(prompt)}`;
+      const response = await axios.get(apiUrl, { responseType: "arraybuffer" });
 
-      const cacheFolderPath = path.join(__dirname, "cache");
-      if (!fs.existsSync(cacheFolderPath)) {
-        fs.mkdirSync(cacheFolderPath);
-      }
-      const imagePath = path.join(cacheFolderPath, `${Date.now()}_image_generee.png`);
+      // Création du cache si inexistant
+      const cacheDir = path.join(__dirname, "cache");
+      if (!fs.existsSync(cacheDir)) fs.mkdirSync(cacheDir);
+
+      const imagePath = path.join(cacheDir, `${Date.now()}_fastflux.png`);
       fs.writeFileSync(imagePath, Buffer.from(response.data, "binary"));
 
-      const stream = fs.createReadStream(imagePath);
-      message.reply({
-        body: `✅ | Voici votre image générée pour : "${prompt}"`,
-        attachment: stream,
-      }, () => {
-        fs.unlinkSync(imagePath);
+      await message.reply({
+        body: `✅ | Image générée pour : "${prompt}"`,
+        attachment: fs.createReadStream(imagePath)
       });
 
-    } catch (error) {
-      console.error("Erreur :", error);
+      // Suppression de l'image temporaire
+      fs.unlinkSync(imagePath);
+
+      // Supprime le message d'attente
+      await message.unsend(waitMsg.messageID);
+
+    } catch (err) {
+      console.error("Erreur FastFlux :", err);
       message.reply("❌ | Une erreur est survenue lors de la génération de l'image. Veuillez réessayer plus tard.");
     }
   }
 };
+
+// Activation noprefix via GoatWrapper
+const wrapper = new g.GoatWrapper(module.exports);
+wrapper.applyNoPrefix({ allowPrefix: false });
