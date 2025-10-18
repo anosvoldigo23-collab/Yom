@@ -1,6 +1,7 @@
 const axios = require("axios");
-const fs = require("fs");
+const fs = require("fs-extra");
 const path = require("path");
+const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
@@ -9,45 +10,36 @@ module.exports = {
     author: "Christus",
     countDown: 5,
     role: 0,
-    shortDescription: {
-      fr: "Créer une image de style alerte avec du texte personnalisé"
-    },
-    description: {
-      fr: "Génère une image meme de style alerte avec votre texte"
-    },
-    category: "𝗙𝗨𝗡 & 𝗝𝗘𝗨",
-    guide: {
-      fr: "{p}alert <texte>\nExemple : {p}alert Attention !"
-    }
+    shortDescription: "Créer une image de style alerte avec du texte personnalisé",
+    longDescription: "Génère une image meme de style alerte avec votre texte",
+    category: "FUN & JEU",
+    guide: "{pn} <texte>",
+    noPrefix: true // Activation noprefix
   },
 
-  langs: {
-    fr: {
-      missing: "❌ | Veuillez fournir un texte pour l'image d'alerte.",
-      error: "❌ | Impossible de générer l'image d'alerte."
-    }
-  },
-
-  onStart: async function ({ message, args, getLang }) {
-    if (!args.length) return message.reply(getLang("missing"));
+  onStart: async function ({ api, event, args }) {
+    if (!args.length) return;
 
     const text = encodeURIComponent(args.join(" "));
 
     try {
-      const res = await axios.get(`https://api.popcat.xyz/v2/alert?text=${text}`, {
-        responseType: "arraybuffer"
-      });
-
+      const res = await axios.get(`https://api.popcat.xyz/v2/alert?text=${text}`, { responseType: "arraybuffer" });
       const filePath = path.join(__dirname, "cache", `alert_${Date.now()}.png`);
-      fs.writeFileSync(filePath, res.data);
+      await fs.outputFile(filePath, res.data);
 
-      message.reply({
+      await api.sendMessage({
         body: "🚨 Voici votre image d'alerte !",
         attachment: fs.createReadStream(filePath)
-      }, () => fs.unlinkSync(filePath));
+      }, event.threadID, event.messageID);
+
+      fs.unlinkSync(filePath);
     } catch (err) {
       console.error(err);
-      message.reply(getLang("error"));
+      await api.sendMessage(`❌ Erreur : ${err.message}`, event.threadID, event.messageID);
     }
   }
 };
+
+// Active le mode noprefix via GoatWrapper
+const w = new g.GoatWrapper(module.exports);
+w.applyNoPrefix({ allowPrefix: false });
