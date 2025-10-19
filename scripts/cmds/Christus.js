@@ -37,14 +37,14 @@ async function chatWithLucy(api, event, messageContent, senderID, senderName) {
 
   } catch (err) {
     console.error("Lucy API Error:", err.message);
-    api.sendMessage("⚠️ Lucy ne peut pas répondre pour le moment.", threadID, messageID);
+    api.sendMessage("⚠️ Christus ne peut pas répondre pour le moment.", threadID, messageID);
   }
 }
 
 module.exports = {
   config: {
     name: 'Christus',
-    aliases: ['Chrsit', 'Ivenus'],
+    aliases: ['Christ', 'Ivenus'],
     version: '2.0',
     author: 'Merdi Madimba',
     role: 0,
@@ -53,7 +53,7 @@ module.exports = {
       fr: 'Lucy répond via une API Gemini avec mémoire et personnalité. Mode normal ou admin.'
     },
     guide: {
-      fr: '`lucy on` → active Lucy normale\n`lucy off` → désactive Lucy\n`lucy admin on [uid]` → active Lucy Admin\n`lucy admin off` → désactive Lucy Admin'
+      fr: '`christus on` → active christus normale\n`christus off` → désactive Christus\n`christus admin on [uid]` → active Christus Admin\n`christus admin off` → désactive christus Admin'
     }
   },
 
@@ -63,33 +63,33 @@ module.exports = {
 
     if (input === "on") {
       if (adminThreads.has(threadID))
-        return message.reply("⚠️ Impossible d'activer Lucy normale, le mode Admin est actif.");
+        return message.reply("⚠️ Impossible d'activer Christus normale, le mode Admin est actif.");
       activeThreads.add(threadID);
-      return message.reply("✅ Lucy normale activée.");
+      return message.reply("✅ Christus normale activée.");
     }
 
     if (input === "off") {
       activeThreads.delete(threadID);
       adminThreads.delete(threadID);
       memories.delete(threadID);
-      return message.reply("❌ Lucy désactivée.");
+      return message.reply("❌ Christus désactivée.");
     }
 
     if (input.startsWith("admin on")) {
       const parts = input.split(" ");
       const adminID = parts[2];
-      if (!adminID) return message.reply("⚠️ Fournis l'UID de l'admin : `lucy admin on [uid]`");
+      if (!adminID) return message.reply("⚠️ Fournis l'UID de l'admin : `christus admin on [uid]`");
       adminThreads.set(threadID, adminID);
       activeThreads.delete(threadID);
-      return message.reply(`✅ Lucy Admin activée. Elle répondra uniquement à l'UID : ${adminID}`);
+      return message.reply(`✅ Christus Admin activée. il répondra uniquement à l'UID : ${adminID}`);
     }
 
     if (input === "admin off") {
       adminThreads.delete(threadID);
-      return message.reply("❌ Lucy Admin désactivée.");
+      return message.reply("❌ Christus Admin désactivée.");
     }
 
-    return message.reply("ℹ️ Utilise : `lucy on/off` ou `lucy admin on/off`");
+    return message.reply("ℹ️ Utilise : `Christus on/off` ou `christus admin on/off`");
   },
 
   onChat: async function({ api, event, message }) {
