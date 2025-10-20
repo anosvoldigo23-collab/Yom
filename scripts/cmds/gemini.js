@@ -11,16 +11,46 @@ function convertirEnMathChars(text) {
   return text.split("").map(c => mapping[c] || c).join("");
 }
 
+// Mémoire globale des utilisateurs
+if (!global.geminiMemory) global.geminiMemory = {};
+
+async function getGeminiResponse(userID, question) {
+  // Initialise l'historique de l'utilisateur
+  if (!global.geminiMemory[userID]) global.geminiMemory[userID] = [];
+
+  // Prépare le contexte pour l'API
+  const historyText = global.geminiMemory[userID]
+    .map(h => `Q: ${h.question}\nA: ${h.answer}`)
+    .join("\n");
+
+  const prompt = historyText 
+    ? `${historyText}\nQ: ${question}\nA:` 
+    : `Q: ${question}\nA:`;
+
+  const response = await axios.get(`${apiURL}?prompt=${encodeURIComponent(prompt)}`);
+  let answer = response.data?.response || "Désolé, je n'ai pas de réponse.";
+
+  // Stocke la nouvelle interaction
+  global.geminiMemory[userID].push({ question, answer });
+
+  // Limite l'historique pour ne pas trop charger l'API
+  if (global.geminiMemory[userID].length > 10) {
+    global.geminiMemory[userID].shift();
+  }
+
+  return answer;
+}
+
 module.exports = {
   config: {
     name: "gemini",
     aliases: ["ai", "chat"],
-    version: "0.0.2",
+    version: "0.0.4",
     author: "Christus",
     countDown: 3,
     role: 0,
     shortDescription: "Pose une question à Gemini AI",
-    longDescription: "Discute avec Gemini via l'API mise à jour par Christus",
+    longDescription: "Discute avec Gemini via l'API mise à jour par Christus avec mémoire des conversations",
     category: "AI",
     guide: "/gemini [ta question]"
   },
@@ -29,14 +59,16 @@ module.exports = {
     const question = args.join(" ");
     if (!question) return api.sendMessage("⚠ Veuillez poser une question.", event.threadID, event.messageID);
 
+    // Réponse spéciale sur le créateur
+    if (question.toLowerCase().includes("créateur") || question.toLowerCase().includes("qui t'a créé")) {
+      const creatorAnswer = convertirEnMathChars("Je suis une IA développée par Christus.");
+      return api.sendMessage(`🤖 ${creatorAnswer}`, event.threadID, event.messageID);
+    }
+
     api.setMessageReaction("⏳", event.messageID, () => {}, true);
 
     try {
-      const response = await axios.get(`${apiURL}?prompt=${encodeURIComponent(question)}`);
-      let answer = response.data?.response;
-      if (!answer) throw new Error("Aucune réponse reçue de l'API Gemini.");
-
-      // Conversion en caractères mathématiques
+      let answer = await getGeminiResponse(event.senderID, question);
       answer = convertirEnMathChars(answer);
 
       api.setMessageReaction("✅", event.messageID, () => {}, true);
@@ -68,13 +100,16 @@ module.exports = {
     const question = event.body;
     if (!question) return;
 
+    // Réponse spéciale sur le créateur
+    if (question.toLowerCase().includes("créateur") || question.toLowerCase().includes("qui t'a créé")) {
+      const creatorAnswer = convertirEnMathChars("Je suis une IA développée par Christus.");
+      return api.sendMessage(`🤖 ${creatorAnswer}`, event.threadID, event.messageID);
+    }
+
     api.setMessageReaction("⏳", event.messageID, () => {}, true);
 
     try {
-      const response = await axios.get(`${apiURL}?prompt=${encodeURIComponent(question)}`);
-      let answer = response.data?.response;
-      if (!answer) throw new Error("Aucune réponse reçue de l'API Gemini.");
-
+      let answer = await getGeminiResponse(event.senderID, question);
       answer = convertirEnMathChars(answer);
 
       api.setMessageReaction("✅", event.messageID, () => {}, true);
