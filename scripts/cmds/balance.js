@@ -104,14 +104,14 @@ async function drawBalanceCard(data) {
     `Rank: #${data.rank}`,
     `Messages: ${data.totalMsg}`,
     `Username: ${data.username || "Not Set"}`,
-    `Créateur: CHRISTUS BOT`
+    `Créateur: ʚɸɞ Christus ʚɸɞ`
   ];
   lines.forEach((text, i) => ctx.fillText(text, infoX + 30, infoY + 110 + i * 45));
 
   // 🕓 Date
   ctx.font = "24px Arial";
   ctx.fillStyle = "#cccccc";
-  ctx.fillText(` Updated: ${moment().tz("Africa/Abidjan").format("YYYY-MM-DD hh:mm A")}`, W/2, H - 30);
+  ctx.fillText(`Updated: ${moment().tz("Africa/Abidjan").format("YYYY-MM-DD hh:mm A")}`, W/2, H - 30);
 
   // 💾 Sauvegarde
   const fileName = `balance_${data.uid}_${randomString(6)}.png`;
