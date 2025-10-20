@@ -11,13 +11,15 @@ async function generateClash(input, userId, adversaireNom) {
     const history = clashHistories.get(userId) || [];
     const lastMessages = history.slice(-3).join(" | ");
 
+    // Prompt ultra violent et insultant
     const prompt = `
-[SYSTEM] MODE BATTLE CLASH PRO
-Tu es un bot de clash ultra-agressif.
+[SYSTEM] MODE BATTLE CLASH ULTRA-IRRESPECTUEUX
+Tu es un bot de clash sans aucune pitié.
 RÈGLES :
 - Mentionne toujours l'adversaire : ${adversaireNom}.
-- Réponses uniques, brutales, 20-50 mots si possible.
-- Aucune répétition, style percutant et créatif.
+- Réponses crues, insultes maximales, brutales.
+- Aucun respect, aucune empathie, attaque personnelle directe.
+- Réponses uniques et destructrices, entre 20 et 50 mots si possible.
 Derniers messages : ${lastMessages}
 [${adversaireNom}]: ${cleanInput}
 `;
@@ -28,7 +30,6 @@ Derniers messages : ${lastMessages}
         if (!result) return "⚠️ Impossible de générer un clash.";
 
         const words = result.trim().split(/\s+/);
-        // On supprime la limite minimale : le bot répond toujours
         if (words.length > 50) return words.slice(0, 50).join(' ');
 
         history.push(cleanInput, result.trim());
@@ -44,11 +45,11 @@ module.exports = {
     config: {
         name: 'clash',
         author: 'Christus',
-        version: '5.1',
+        version: '6.0',
         role: 0,
         category: 'Fun',
-        shortDescription: '💥 Duel verbal extrême',
-        longDescription: 'Bataille de clash ultra-violente avec mémoire et réponses automatiques',
+        shortDescription: '💥 Duel verbal ultra-insultant',
+        longDescription: 'Bataille de clash où le bot insulte brutalement et sans aucune pitié',
     },
 
     onStart: async function ({ api, event, args }) {
@@ -68,15 +69,15 @@ module.exports = {
                 const name = user?.[targetID]?.name || "Inconnu";
                 return api.sendMessage(
 `╔════════════════════╗
-💥 𝗖𝗟𝗔𝗦𝗛 𝗕𝗔𝗧𝗧𝗟𝗘 💥
+🔥 𝗖𝗟𝗔𝗦𝗛 𝗕𝗔𝗧𝗧𝗟𝗘 🔥
 ╚════════════════════╝
 
-🔥 @${name}, tu es maintenant la cible du duel !
-💀 Prépare-toi à encaisser des coups de mots impitoyables !
-🛡️ Montre ton courage et ton esprit de combattant !
+⚡ @${name}, tu viens de déclencher l'enfer verbal !
+💀 Prépare-toi à encaisser les insultes les plus cruelles que tu n'as jamais reçues !
+💥 Aucun respect, aucune pitié, juste de la destruction verbale !
 
 ╔════════════════════╗
-💥 La bataille commence ! 💥
+🔥 Que le carnage commence ! 🔥
 ╚════════════════════╝`, 
                 event.threadID, event.messageID);
             } catch {
@@ -93,8 +94,7 @@ module.exports = {
 ╚════════════════════╝
 
 🎉 Tu as survécu… pour l'instant !
-💬 Reviens plus fort pour le prochain duel !
-`, event.threadID);
+💬 Reviens plus fort, si tu oses !`, event.threadID);
 
         } else {
             return api.sendMessage("Usage: !clash on [@user] / !clash off [@user]", event.threadID);
@@ -111,7 +111,7 @@ module.exports = {
 
             const aiResponse = await generateClash(event.body, event.senderID, adversaireNom);
             return api.sendMessage({
-                body: `⚔️ 𝗖𝗟𝗔𝗦𝗛 💬\n@${adversaireNom} : ${aiResponse}`,
+                body: `💣 𝗖𝗟𝗔𝗦𝗛 💬\n@${adversaireNom} : ${aiResponse}`,
                 mentions: [{ tag: `@${adversaireNom}`, id: event.senderID }]
             }, event.threadID, event.messageID);
         } catch {}
