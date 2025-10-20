@@ -18,6 +18,14 @@ function randomString(length) {
   return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
 }
 
+// Génère une couleur RGBA aléatoire
+function getRandomColor(alpha = 1) {
+  const r = Math.floor(Math.random() * 256);
+  const g = Math.floor(Math.random() * 256);
+  const b = Math.floor(Math.random() * 256);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
 function drawHex(ctx, cx, cy, r, stroke, lineWidth = 3, glow = false) {
   ctx.beginPath();
   for (let i = 0; i < 6; i++) {
@@ -67,7 +75,7 @@ async function drawRankCard(data) {
   const canvas = createCanvas(W, H);
   const ctx = canvas.getContext("2d");
 
-  // Fond noir
+  // Fond noir dégradé
   const bg = ctx.createLinearGradient(0, 0, W, H);
   bg.addColorStop(0, "#000000");
   bg.addColorStop(1, "#0a0a0a");
@@ -78,16 +86,17 @@ async function drawRankCard(data) {
   for (let i = 0; i < 150; i++) {
     ctx.beginPath();
     ctx.arc(Math.random() * W, Math.random() * H, Math.random() * 2 + 1.5, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(${Math.floor(Math.random()*255)},${Math.floor(Math.random()*255)},255,${Math.random()*0.3+0.2})`;
+    ctx.fillStyle = getRandomColor(Math.random() * 0.3 + 0.2);
     ctx.fill();
   }
 
   // Cadre néon
   const offset = 25;
+  const neonColor = getRandomColor();
   ctx.save();
-  ctx.shadowColor = "#ff00ff";
+  ctx.shadowColor = neonColor;
   ctx.shadowBlur = 35;
-  ctx.strokeStyle = "rgba(255,0,255,0.6)";
+  ctx.strokeStyle = neonColor;
   ctx.lineWidth = 12;
   roundRect(ctx, offset, offset, W - offset*2, H - offset*2, 50);
   ctx.stroke();
@@ -96,9 +105,9 @@ async function drawRankCard(data) {
   // Avatar hex
   const centerX = 700, centerY = 180, radius = 120;
   for (let i = 4; i > 0; i--) {
-    drawHex(ctx, centerX, centerY, radius + i*18, `rgba(255,0,255,${0.08 * i})`, 4);
+    drawHex(ctx, centerX, centerY, radius + i*18, getRandomColor(0.08 * i), 4);
   }
-  drawHex(ctx, centerX, centerY, radius + 5, "rgba(255,192,203,0.9)", 3, true);
+  drawHex(ctx, centerX, centerY, radius + 5, getRandomColor(0.9), 3, true);
 
   ctx.save();
   clipHex(ctx, centerX, centerY, radius);
@@ -107,9 +116,9 @@ async function drawRankCard(data) {
 
   // Nom
   ctx.font = "bold 50px Arial";
-  ctx.fillStyle = "#ffffff";
+  ctx.fillStyle = getRandomColor();
   ctx.textAlign = "center";
-  ctx.shadowColor = "#ff00ff";
+  ctx.shadowColor = getRandomColor();
   ctx.shadowBlur = 25;
   ctx.fillText(data.name, W/2, 370);
 
@@ -117,7 +126,7 @@ async function drawRankCard(data) {
   const leftX = 150, topY = 420, gap = 48;
   ctx.font = "28px Arial";
   ctx.textAlign = "left";
-  ctx.fillStyle = "#00ffff";
+  ctx.fillStyle = getRandomColor();
   [
     `UID: ${data.uid}`,
     `Nickname: ${data.nickname || data.name}`,
@@ -127,7 +136,7 @@ async function drawRankCard(data) {
   ].forEach((text,i)=> ctx.fillText(text, leftX, topY + i*gap));
 
   const rightX = 750;
-  ctx.fillStyle = "#ff99ff";
+  ctx.fillStyle = getRandomColor();
   [
     `EXP: ${data.exp} / ${data.requiredExp}`,
     `Rank: #${data.rank}`,
@@ -137,14 +146,14 @@ async function drawRankCard(data) {
 
   // Footer
   ctx.font = "24px Arial";
-  ctx.fillStyle = "#cccccc";
+  ctx.fillStyle = getRandomColor();
   ctx.textAlign = "center";
   ctx.fillText(`Updated: ${moment().tz("Africa/Abidjan").format("YYYY-MM-DD hh:mm A")}`, W/2, H-60);
 
   // Signature
   ctx.font = "30px Arial";
-  ctx.fillStyle = "#ff00ff";
-  ctx.shadowColor = "#ff00ff";
+  ctx.fillStyle = getRandomColor();
+  ctx.shadowColor = getRandomColor();
   ctx.shadowBlur = 15;
   ctx.fillText("CHRISTUS BOT", W/2, H-25);
 
@@ -175,10 +184,10 @@ module.exports = {
       const allUsers = await usersData.getAll();
       const sortedExp = allUsers.map(u => ({ id: u.userID, exp: u.exp || 0, money: u.money || 0 }))
         .sort((a,b)=> b.exp - a.exp);
-      const rank = sortedExp.findIndex(u => u.id === uid) +1;
+      const rank = sortedExp.findIndex(u => u.id === uid) + 1;
 
       const sortedMoney = [...allUsers].sort((a,b)=> (b.money || 0) - (a.money || 0));
-      const moneyRank = sortedMoney.findIndex(u => u.userID === uid) +1;
+      const moneyRank = sortedMoney.findIndex(u => u.userID === uid) + 1;
 
       const userData = await usersData.get(uid);
       if(!userData) return message.reply("❌ User data not found.");
@@ -220,8 +229,8 @@ module.exports = {
       const filePath = await drawRankCard(drawData);
       await message.reply({ attachment: fs.createReadStream(filePath) });
 
-      setTimeout(()=>{ 
-        try{ fs.unlinkSync(filePath); } catch{} 
+      setTimeout(()=>{
+        try{ fs.unlinkSync(filePath); } catch{}
       }, 30000);
 
     } catch(err){
