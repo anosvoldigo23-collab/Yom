@@ -4,8 +4,8 @@ module.exports = {
   config: {
     name: "chattv",
     aliases: ["tvchat", "ctv"],
-    version: "2.0",
-    author: "Christus ✨",
+    version: "2.1",
+    author: "Christus",
     countDown: 3,
     role: 0,
     shortDescription: "Discuter avec ChatTV 📺",
@@ -23,19 +23,21 @@ module.exports = {
       );
     }
 
-    // Message de chargement avec animation simulée
-    const loadingMsg = await api.sendMessage(
-      "⏳ ChatTV réfléchit à ta question... 💭",
-      event.threadID
-    );
+    // Envoie un message de chargement
+    const loadingText = "⏳ ChatTV réfléchit à ta question... 💭";
+    api.sendMessage(loadingText, event.threadID, async (err, info) => {
+      if (err) return;
 
-    try {
-      const response = await axios.get(`https://arychauhann.onrender.com/api/chattv?prompt=${encodeURIComponent(prompt)}`);
-      const data = response.data;
+      try {
+        const response = await axios.get(`https://arychauhann.onrender.com/api/chattv?prompt=${encodeURIComponent(prompt)}`);
+        const data = response.data;
 
-      if (data.status && data.result && data.result.reply) {
-        // Message stylisé
-        const replyMessage = 
+        // Supprime le message de chargement
+        api.unsendMessage(info.messageID);
+
+        if (data.status && data.result && data.result.reply) {
+          // Message stylisé final
+          const replyMessage = 
 `━━━━━━━━━━━━━━━━━━━
 📺 𝗖𝗵𝗮𝘁𝗧𝗩 𝗥𝗲́𝗽𝗼𝗻𝗱 💬
 ━━━━━━━━━━━━━━━━━━━
@@ -45,14 +47,16 @@ module.exports = {
 ━━━━━━━━━━━━━━━━━━━
 ✨ Powered by Christus x ChatTV`;
 
-        api.editMessage(replyMessage, loadingMsg.messageID);
-      } else {
-        api.editMessage("⚠️ Aucune réponse reçue de l'API. Réessaie plus tard.", loadingMsg.messageID);
-      }
+          api.sendMessage(replyMessage, event.threadID, event.messageID);
+        } else {
+          api.sendMessage("⚠️ Aucune réponse reçue de l'API. Réessaie plus tard.", event.threadID, event.messageID);
+        }
 
-    } catch (error) {
-      console.error(error);
-      api.editMessage("❌ Une erreur est survenue lors de la communication avec ChatTV 📡", loadingMsg.messageID);
-    }
+      } catch (error) {
+        console.error(error);
+        api.unsendMessage(info.messageID);
+        api.sendMessage("❌ Une erreur est survenue lors de la communication avec ChatTV 📡", event.threadID, event.messageID);
+      }
+    });
   }
 };
