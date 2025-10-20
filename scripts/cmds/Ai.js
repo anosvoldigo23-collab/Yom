@@ -9,7 +9,7 @@ module.exports = {
     countDown: 3,
     role: 0,
     category: "AI",
-    shortDescription: { fr: "💬 Parle avec Nezuko (Gemini AI)" },
+    shortDescription: { fr: "💬 Parle avec CHRISTUS (Gemini AI)" },
     longDescription: { fr: "Discute directement avec Nezuko sans préfixe grâce à l'API Gemini 🧠" },
     guide: { fr: "Tape simplement ta question sans préfixe." },
     noPrefix: true // ✅ Activation NOPREFIX
@@ -24,7 +24,7 @@ module.exports = {
       const data = res.data;
 
       if (!data.status || !data.result) {
-        return message.reply("❌ 𝐍𝐞𝐳𝐮𝐤𝐨 𝐧'𝐚 𝐩𝐚𝐬 𝐩𝐮 𝐫𝐞́𝐩𝐨𝐧𝐝𝐫𝐞 😔");
+        return message.reply("❌ Christus 𝐧'𝐚 𝐩𝐚𝐬 𝐩𝐮 𝐫𝐞́𝐩𝐨𝐧𝐝𝐫𝐞 😔");
       }
 
       const response = data.result.trim();
