@@ -2,7 +2,7 @@ const axios = require('axios');
 
 module.exports = {
   config: {
-    name: "ai",
+    name: "gpt4o",
     aliases: ["askgpt4o", "kohi"],
     version: "1.4",
     author: "Christus",
