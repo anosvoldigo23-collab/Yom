@@ -1,178 +1,149 @@
-const fs = require("fs");
+const fs = require("fs-extra");
 const path = require("path");
-const moment = require("moment-timezone");
+const axios = require("axios");
 const { createCanvas, loadImage } = require("canvas");
-
-function randomString(length) {
-  const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
-  return Array.from({ length }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
-}
-
-function roundRect(ctx, x, y, w, h, r) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.lineTo(x + w - r, y);
-  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
-  ctx.lineTo(x + w, y + h - r);
-  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-  ctx.lineTo(x + r, y + h);
-  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
-  ctx.lineTo(x, y + r);
-  ctx.quadraticCurveTo(x, y, x + r, y);
-  ctx.closePath();
-}
-
-function drawHex(ctx, cx, cy, r, stroke, lineWidth = 3, glow = false) {
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 3) * i - Math.PI / 2;
-    const x = cx + r * Math.cos(angle);
-    const y = cy + r * Math.sin(angle);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.strokeStyle = stroke;
-  ctx.lineWidth = lineWidth;
-  ctx.shadowColor = glow ? stroke : "transparent";
-  ctx.shadowBlur = glow ? 25 : 0;
-  ctx.stroke();
-}
-
-function clipHex(ctx, cx, cy, r) {
-  ctx.beginPath();
-  for (let i = 0; i < 6; i++) {
-    const angle = (Math.PI / 3) * i - Math.PI / 2;
-    const x = cx + r * Math.cos(angle);
-    const y = cy + r * Math.sin(angle);
-    if (i === 0) ctx.moveTo(x, y);
-    else ctx.lineTo(x, y);
-  }
-  ctx.closePath();
-  ctx.clip();
-}
-
-async function drawBalanceCard(data) {
-  const W = 1400, H = 600;
-  const canvas = createCanvas(W, H);
-  const ctx = canvas.getContext("2d");
-
-  // 🎨 Fond sombre avec dégradé
-  const bg = ctx.createLinearGradient(0, 0, W, H);
-  bg.addColorStop(0, "#0a0a0a");
-  bg.addColorStop(1, "#1a1a1a");
-  ctx.fillStyle = bg;
-  ctx.fillRect(0, 0, W, H);
-
-  // 🌟 Particules légères
-  for (let i = 0; i < 100; i++) {
-    ctx.beginPath();
-    ctx.arc(Math.random() * W, Math.random() * H, Math.random() * 2 + 1, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(255,255,255,${Math.random() * 0.2})`;
-    ctx.fill();
-  }
-
-  // 🔷 Avatar à gauche avec glow hex
-  const avatarX = 200, avatarY = 300, radius = 120;
-  for (let i = 3; i > 0; i--) drawHex(ctx, avatarX, avatarY, radius + i * 15, `rgba(0,255,255,${0.08 * i})`, 4);
-  drawHex(ctx, avatarX, avatarY, radius + 4, "#00ffff", 3, true);
-
-  ctx.save();
-  clipHex(ctx, avatarX, avatarY, radius);
-  ctx.drawImage(data.avatar, avatarX - radius, avatarY - radius, radius * 2, radius * 2);
-  ctx.restore();
-
-  // 📝 Cadre pour infos à droite
-  const infoX = 400, infoY = 150, infoW = 950, infoH = 300;
-  ctx.fillStyle = "rgba(0,0,0,0.7)";
-  roundRect(ctx, infoX, infoY, infoW, infoH, 30);
-  ctx.fill();
-
-  // 🔤 Texte infos
-  ctx.font = "bold 42px Arial";
-  ctx.fillStyle = "#00ffff";
-  ctx.shadowColor = "#000000";
-  ctx.shadowBlur = 10;
-  ctx.fillText(data.name, infoX + 30, infoY + 60);
-
-  ctx.font = "28px Arial";
-  ctx.fillStyle = "#ffffff";
-  const lines = [
-    `UID: ${data.uid}`,
-    `Balance: ${data.balance} $`,
-    `Level: ${data.level}`,
-    `Rank: #${data.rank}`,
-    `Messages: ${data.totalMsg}`,
-    `Username: ${data.username || "Not Set"}`,
-    `Créateur: ʚɸɞ Christus ʚɸɞ`
-  ];
-  lines.forEach((text, i) => ctx.fillText(text, infoX + 30, infoY + 110 + i * 45));
-
-  // 🕓 Date
-  ctx.font = "24px Arial";
-  ctx.fillStyle = "#cccccc";
-  ctx.fillText(`Updated: ${moment().tz("Africa/Abidjan").format("YYYY-MM-DD hh:mm A")}`, W/2, H - 30);
-
-  // 💾 Sauvegarde
-  const fileName = `balance_${data.uid}_${randomString(6)}.png`;
-  const filePath = path.join(__dirname, "cache", fileName);
-  if (!fs.existsSync(path.dirname(filePath))) fs.mkdirSync(path.dirname(filePath));
-  fs.writeFileSync(filePath, canvas.toBuffer("image/png"));
-  return filePath;
-}
 
 module.exports = {
   config: {
-    name: "balance",
-    version: "1.0",
+    name: "bal",
+    aliases: ["wallet", "cash", "coins"],
+    version: "1.3",
     author: "Christus",
-    countDown: 5,
+    countDown: 3,
     role: 0,
-    shortDescription: "💰 Affiche la balance de l'utilisateur avec style",
-    category: "Fun",
-    guide: "{pn} [@mention ou vide pour soi-même]"
+    shortDescription: { en: "💎 Check your glowing wallet!" },
+    longDescription: { en: "Display your balance in a glowing neon card with avatar, name, and amount." },
+    category: "💼 Economy",
+    guide: { en: "➤ +bal\n➤ +bal @user" },
+    usePrefix: true,
+    useChat: true,
   },
 
-  onStart: async function({ api, event, args, usersData, message }) {
+  onStart: async function({ event, args, message, usersData, api, role }) {
+    let targetID = event.senderID;
+
+    if (args.length > 0) {
+      if (event.mentions && Object.keys(event.mentions).length > 0) {
+        targetID = Object.keys(event.mentions)[0];
+      } else if (/^\d{5,20}$/.test(args[0])) {
+        if (role === 2) targetID = args[0];
+        else return message.reply("🔒 Only bot owner can check others' wallets!");
+      }
+    }
+
+    const name = await usersData.getName(targetID);
+    const balance = (await usersData.get(targetID, "money")) || 0;
+
     try {
-      const { senderID, mentions, messageReply } = event;
-      const uid = Object.keys(mentions)[0] || args[0] || (messageReply?.senderID || senderID);
+      let avatarURL = await usersData.getAvatarUrl(targetID);
+      if (!avatarURL) avatarURL = "https://i.imgur.com/4NZ6uLY.jpg";
 
-      const userData = await usersData.get(uid);
-      if(!userData) return message.reply("❌ User data not found.");
-      const uInfo = await api.getUserInfo(uid);
-      const info = uInfo[uid];
-      if(!info) return message.reply("❌ Failed to fetch user info.");
+      const width = 450;
+      const height = 200;
+      const canvas = createCanvas(width, height);
+      const ctx = canvas.getContext("2d");
 
-      let avatar;
-      try {
-        const avatarUrl = await usersData.getAvatarUrl(uid);
-        avatar = await loadImage(avatarUrl);
-      } catch {
-        avatar = await loadImage("https://i.imgur.com/I3VsBEt.png");
+      // Fonction pour générer une couleur aléatoire
+      function randomColor() {
+        const letters = "0123456789ABCDEF";
+        let color = "#";
+        for (let i = 0; i < 6; i++) color += letters[Math.floor(Math.random() * 16)];
+        return color;
       }
 
-      const drawData = {
-        avatar,
-        name: info.name || "User",
-        uid,
-        username: info.vanity || "Not Set",
-        balance: userData.money || 0,
-        level: userData.level || 1,
-        rank: userData.rank || 1,
-        totalMsg: userData.totalMsg || 0
-      };
+      // Fond noir uni
+      ctx.fillStyle = "#000000";
+      ctx.fillRect(0, 0, width, height);
 
-      const filePath = await drawBalanceCard(drawData);
-      await message.reply({ attachment: fs.createReadStream(filePath) });
+      // Load avatar
+      const avatarResp = await axios.get(avatarURL, { responseType: "arraybuffer" });
+      const avatarImg = await loadImage(Buffer.from(avatarResp.data, "binary"));
+      const avatarSize = 100;
+      const avatarX = 20;
+      const avatarY = (height - avatarSize) / 2;
 
-      setTimeout(()=> {
-        try{ fs.unlinkSync(filePath); } catch {}
-      }, 30000);
+      // Draw glowing avatar
+      ctx.save();
+      ctx.shadowColor = randomColor(); // glow color
+      ctx.shadowBlur = 20; // glow intensity
+      ctx.beginPath();
+      ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.clip();
+      ctx.drawImage(avatarImg, avatarX, avatarY, avatarSize, avatarSize);
+      ctx.restore();
 
-    } catch(err) {
-      console.error(err);
-      return message.reply("❌ Failed to generate balance card.");
+      // Draw glowing border around avatar
+      ctx.shadowColor = randomColor();
+      ctx.shadowBlur = 15;
+      ctx.beginPath();
+      ctx.arc(avatarX + avatarSize / 2, avatarY + avatarSize / 2, avatarSize / 2, 0, Math.PI * 2);
+      ctx.lineWidth = 4;
+      ctx.strokeStyle = randomColor();
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Draw glowing user name
+      ctx.font = "bold 28px Arial";
+      ctx.fillStyle = randomColor();
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.shadowBlur = 10;
+      ctx.fillText(name, avatarX + avatarSize + 20, avatarY + 40);
+
+      // Draw glowing balance
+      ctx.font = "bold 24px Arial";
+      ctx.fillStyle = randomColor();
+      ctx.shadowColor = ctx.fillStyle;
+      ctx.shadowBlur = 10;
+      ctx.fillText(`Balance: ＄${balance.toLocaleString()}`, avatarX + avatarSize + 20, avatarY + 90);
+
+      // Draw decorative glowing stars
+      for (let i = 0; i < 10; i++) {
+        ctx.fillStyle = randomColor();
+        ctx.shadowColor = ctx.fillStyle;
+        ctx.shadowBlur = 8;
+        const x = Math.random() * width;
+        const y = Math.random() * height;
+        ctx.fillText("★", x, y);
+      }
+
+      // Decorative glowing line
+      ctx.shadowColor = randomColor();
+      ctx.shadowBlur = 10;
+      ctx.strokeStyle = randomColor();
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(avatarX + avatarSize + 20, avatarY + 110);
+      ctx.lineTo(width - 20, avatarY + 110);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Save image
+      const imgBuffer = canvas.toBuffer("image/png");
+      const imgPath = path.join(__dirname, "cache", `wallet_${targetID}.png`);
+      await fs.ensureDir(path.dirname(imgPath));
+      await fs.writeFile(imgPath, imgBuffer);
+
+      api.sendMessage(
+        { body: "💎 Here's your glowing wallet card!", attachment: fs.createReadStream(imgPath) },
+        event.threadID
+      );
+    } catch (err) {
+      console.error("Wallet image generation error:", err);
     }
-  }
+  },
+
+  onChat: async function({ event, message }) {
+    const body = event.body?.toLowerCase();
+    if (!body) return;
+
+    if (["bal", "wallet", "cash", "coins"].includes(body.trim())) {
+      message.body = "+bal";
+      return this.onStart({ ...arguments[0], args: [], message });
+    } else if (body.startsWith("bal ")) {
+      const args = body.trim().split(/\s+/).slice(1);
+      message.body = "+bal " + args.join(" ");
+      return this.onStart({ ...arguments[0], args, message });
+    }
+  },
 };
