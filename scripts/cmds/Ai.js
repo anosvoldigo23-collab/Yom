@@ -3,7 +3,7 @@ const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
-    name: "nezuko",
+    name: "ai",
     version: "1.0",
     author: "Christus",
     countDown: 3,
