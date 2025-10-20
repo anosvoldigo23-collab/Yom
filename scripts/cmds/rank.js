@@ -119,27 +119,27 @@ async function drawRankCard(data) {
   ctx.textAlign = "left";
   ctx.fillStyle = "#00ffff";
   [
-    `🆔 UID: ${data.uid}`,
-    `💬 Nickname: ${data.nickname || data.name}`,
-    `🚻 Gender: ${data.gender}`,
-    `🌐 Username: ${data.username}`,
-    `⭐ Level: ${data.level}`
+    `UID: ${data.uid}`,
+    `Nickname: ${data.nickname || data.name}`,
+    `Gender: ${data.gender}`,
+    `Username: ${data.username}`,
+    `Level: ${data.level}`
   ].forEach((text,i)=> ctx.fillText(text, leftX, topY + i*gap));
 
   const rightX = 750;
   ctx.fillStyle = "#ff99ff";
   [
-    `⚡ EXP: ${data.exp} / ${data.requiredExp}`,
-    `🏆 Rank: #${data.rank}`,
-    `💰 Money: ${data.money}`,
-    `💸 Money Rank: #${data.moneyRank || "N/A"}`
+    `EXP: ${data.exp} / ${data.requiredExp}`,
+    `Rank: #${data.rank}`,
+    `Money: ${data.money}`,
+    `Money Rank: #${data.moneyRank || "N/A"}`
   ].forEach((text,i)=> ctx.fillText(text, rightX, topY + i*gap));
 
   // Footer
   ctx.font = "24px Arial";
   ctx.fillStyle = "#cccccc";
   ctx.textAlign = "center";
-  ctx.fillText(`🕓 Updated: ${moment().tz("Africa/Abidjan").format("YYYY-MM-DD hh:mm A")}`, W/2, H-60);
+  ctx.fillText(`Updated: ${moment().tz("Africa/Abidjan").format("YYYY-MM-DD hh:mm A")}`, W/2, H-60);
 
   // Signature
   ctx.font = "30px Arial";
@@ -206,7 +206,7 @@ module.exports = {
         name: info.name || "User",
         uid,
         username: (info.vanity && info.vanity.trim()!=="") ? info.vanity : "Not Set",
-        gender: ["Unknown","Girl 🙋🏻‍♀️","Boy 🙋🏻‍♂️"][info.gender] || "Unknown",
+        gender: ["Unknown","Girl","Boy"][info.gender] || "Unknown",
         nickname: userData.nickname || info.name || "User",
         level,
         exp: progressExp,
