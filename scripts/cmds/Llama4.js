@@ -3,9 +3,9 @@ const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
 
 module.exports = {
   config: {
-    name: "llama4",
+    name: "ai",
     version: "1.1",
-    author: "Christus ✨",
+    author: "Christus",
     countDown: 3,
     role: 0,
     category: "AI",
