@@ -4,42 +4,36 @@ const { utils } = global;
 module.exports = {
   config: {
     name: "prefix",
-    version: "2.0",
+    version: "3.1",
     author: "Christus",
     countDown: 5,
     role: 0,
-    description: "🎯 𝐌𝐨𝐝𝐢𝐟𝐢𝐞 𝐥𝐞 𝐩𝐫𝐞́𝐟𝐢𝐱𝐞 𝐝𝐮 𝐛𝐨𝐭 𝐝𝐚𝐧𝐬 𝐥𝐞 𝐜𝐡𝐚𝐭 𝐨𝐮 𝐠𝐥𝐨𝐛𝐚𝐥𝐞𝐦𝐞𝐧𝐭",
-    category: "🛠️ 𝐒𝐲𝐬𝐭𝐞̀𝐦𝐞",
+    description: "🚀 𝗠𝗼𝗱𝗶𝗳𝗶𝗲 𝗹𝗲 𝗽𝗿𝗲́𝗳𝗶𝘅 𝗱𝘂 𝗯𝗼𝘁 𝗲𝗻 𝗺𝗮𝗷 𝗱𝗮𝗻𝘀 𝗹𝗲 𝗰𝗵𝗮𝘁 𝗼𝘂 𝗴𝗹𝗼𝗯𝗮𝗹𝗲𝗺𝗲𝗻𝘁",
+    category: "🛠️ 𝗦𝘆𝘀𝘁𝗲̀𝗺𝗲",
     guide: {
       en:
-`╭─『 ✨ 𝐏𝐑𝐄𝐅𝐈𝐗 𝐂𝐎𝐌𝐌𝐀𝐍𝐃 ✨ 』
-│
-│ 🔸 𝐔𝐭𝐢𝐥𝐢𝐬𝐚𝐭𝐢𝐨𝐧 :
-│   ➥ {pn} <𝐧𝐨𝐮𝐯𝐞𝐚𝐮 𝐩𝐫𝐞́𝐟𝐢𝐱𝐞>
-│   ⤷ 𝐌𝐨𝐝𝐢𝐟𝐢𝐞 𝐥𝐞 𝐩𝐫𝐞́𝐟𝐢𝐱𝐞 𝐝𝐚𝐧𝐬 𝐜𝐞 𝐜𝐡𝐚𝐭
-│   ✍️ 𝐄𝐱𝐞𝐦𝐩𝐥𝐞 : {pn} $
-│
-│ 🌐 {pn} <𝐧𝐨𝐮𝐯𝐞𝐚𝐮 𝐩𝐫𝐞́𝐟𝐢𝐱𝐞> -g
-│   ⤷ 𝐌𝐨𝐝𝐢𝐟𝐢𝐞 𝐥𝐞 𝐩𝐫𝐞́𝐟𝐢𝐱𝐞 𝐠𝐥𝐨𝐛𝐚𝐥𝐞 (𝐀𝐝𝐦𝐢𝐧)
-│   ✍️ 𝐄𝐱𝐞𝐦𝐩𝐥𝐞 : {pn} ! -g
-│
-│ ♻️ {pn} reset
-│   ⤷ 𝐑𝐞́𝐢𝐧𝐢𝐭𝐢𝐚𝐥𝐢𝐬𝐞 𝐚𝐮 𝐩𝐫𝐞́𝐟𝐢𝐱𝐞 𝐝𝐞́𝐟𝐚𝐮𝐭
-│
-│ 📌 𝐓𝐚𝐩𝐞 : prefix
-│   ⤷ 𝐀𝐟𝐟𝐢𝐜𝐡𝐞 𝐥𝐞𝐬 𝐢𝐧𝐟𝐨𝐬 𝐝𝐞 𝐩𝐫𝐞́𝐟𝐢𝐱𝐞
-╰───────────────────────────────`
+`╔═══════════✨ 𝗣𝗥𝗘𝗙𝗜𝗫 𝗖𝗢𝗠𝗠𝗔𝗡𝗗 ✨═══════════╗
+║ 🔹 𝗨𝘁𝗶𝗹𝗶𝘀𝗮𝘁𝗶𝗼𝗻 :
+║   {pn} <𝗻𝗼𝘂𝘃𝗲𝗮𝘂 𝗽𝗿𝗲́𝗳𝗶𝘅𝗲> → change le préfixe du chat
+║   Exemple : {pn} $
+║
+║ 🌐 {pn} <𝗻𝗼𝘂𝘃𝗲𝗮𝘂 𝗽𝗿𝗲́𝗳𝗶𝘅𝗲> -g → change le préfixe global (Admin)
+║   Exemple : {pn} ! -g
+║
+║ ♻️ {pn} reset → réinitialise le préfixe par défaut
+║ 📌 {pn} → affiche les infos des préfixes
+╚════════════════════════════════════════════╝`
     }
   },
 
   langs: {
     en: {
-      reset: "✅ 𝐑𝐞́𝐢𝐧𝐢𝐭𝐢𝐚𝐥𝐢𝐬𝐞́ 𝐚𝐮 𝐩𝐫𝐞́𝐟𝐢𝐱𝐞 𝐝𝐞́𝐟𝐚𝐮𝐭 : %1",
-      onlyAdmin: "⛔ 𝐒𝐞𝐮𝐥𝐬 𝐥𝐞𝐬 𝐚𝐝𝐦𝐢𝐧𝐬 𝐩𝐞𝐮𝐯𝐞𝐧𝐭 𝐜𝐡𝐚𝐧𝐠𝐞𝐫 𝐥𝐞 𝐩𝐫𝐞́𝐟𝐢𝐱𝐞 𝐠𝐥𝐨𝐛𝐚𝐥𝐞 !",
-      confirmGlobal: "⚙️ 𝐑𝐞́𝐚𝐠𝐢𝐬 𝐩𝐨𝐮𝐫 𝐜𝐨𝐧𝐟𝐢𝐫𝐦𝐞𝐫 𝐥𝐚 𝐦𝐢𝐬𝐞 𝐚̀ 𝐣𝐨𝐮𝐫 𝐠𝐥𝐨𝐛𝐚𝐥𝐞 🌐",
-      confirmThisThread: "⚙️ 𝐑𝐞́𝐚𝐠𝐢𝐬 𝐩𝐨𝐮𝐫 𝐜𝐨𝐧𝐟𝐢𝐫𝐦𝐞𝐫 𝐥𝐚 𝐦𝐢𝐬𝐞 𝐚̀ 𝐣𝐨𝐮𝐫 𝐝𝐚𝐧𝐬 𝐜𝐞 𝐜𝐡𝐚𝐭 💬",
-      successGlobal: "✅ 𝐏𝐫𝐞́𝐟𝐢𝐱𝐞 𝐠𝐥𝐨𝐛𝐚𝐥𝐞 𝐦𝐢𝐬 𝐚̀ 𝐣𝐨𝐮𝐫 : %1",
-      successThisThread: "✅ 𝐏𝐫𝐞́𝐟𝐢𝐱𝐞 𝐝𝐮 𝐜𝐡𝐚𝐭 𝐦𝐢𝐬 𝐚̀ 𝐣𝐨𝐮𝐫 : %1"
+      reset: "✅ 𝗣𝗿𝗲́𝗳𝗶𝘅𝗲 𝗿𝗲́𝗶𝗻𝗶𝘁𝗶𝗮𝗹𝗶𝘀𝗲́ : %1",
+      onlyAdmin: "⛔ Seuls les admins peuvent changer le préfixe global !",
+      confirmGlobal: "⚡ Clique pour confirmer la mise à jour du préfixe global 🌐",
+      confirmThisThread: "⚡ Clique pour confirmer la mise à jour du préfixe de ce chat 💬",
+      successGlobal: "✅ Préfixe global mis à jour avec succès : %1",
+      successThisThread: "✅ Préfixe du chat mis à jour avec succès : %1"
     }
   },
 
@@ -47,29 +41,28 @@ module.exports = {
     if (!args[0]) return message.SyntaxError();
 
     // 🔄 Réinitialisation du préfixe
-    if (args[0] === "reset") {
+    if (args[0].toLowerCase() === "reset") {
       await threadsData.set(event.threadID, null, "data.prefix");
       return message.reply(getLang("reset", global.GoatBot.config.prefix));
     }
 
     const newPrefix = args[0];
-    const formSet = {
-      commandName,
+    const setGlobal = args.includes("-g");
+    if (setGlobal && role < 2) return message.reply(getLang("onlyAdmin"));
+
+    const confirmMessage = setGlobal ? getLang("confirmGlobal") : getLang("confirmThisThread");
+    const sentMessage = await message.reply(confirmMessage);
+
+    global.GoatBot.onReaction.set(sentMessage.messageID, {
       author: event.senderID,
       newPrefix,
-      setGlobal: args[1] === "-g"
-    };
-
-    if (formSet.setGlobal && role < 2) return message.reply(getLang("onlyAdmin"));
-
-    const confirmMessage = formSet.setGlobal ? getLang("confirmGlobal") : getLang("confirmThisThread");
-    return message.reply(confirmMessage, (err, info) => {
-      formSet.messageID = info.messageID;
-      global.GoatBot.onReaction.set(info.messageID, formSet);
+      setGlobal,
+      messageID: sentMessage.messageID,
+      commandName
     });
   },
 
-  onReaction: async function ({ message, threadsData, event, Reaction, getLang }) {
+  onReaction: async function ({ message, event, Reaction, threadsData, getLang }) {
     const { author, newPrefix, setGlobal } = Reaction;
     if (event.userID !== author) return;
 
@@ -83,7 +76,6 @@ module.exports = {
     return message.reply(getLang("successThisThread", newPrefix));
   },
 
-  // 📌 Réponse automatique quand on tape "prefix"
   onChat: async function ({ event, message, threadsData, usersData }) {
     const globalPrefix = global.GoatBot.config.prefix;
     const threadPrefix = await threadsData.get(event.threadID, "data.prefix") || globalPrefix;
@@ -92,12 +84,12 @@ module.exports = {
       const userName = await usersData.getName(event.senderID);
 
       return message.reply(
-`╭─『 👑 𝐈𝐍𝐅𝐎𝐒 𝐏𝐑𝐄𝐅𝐈𝐗𝐄 』
-│ 👤 𝐔𝐭𝐢𝐥𝐢𝐬𝐚𝐭𝐞𝐮𝐫 : ${userName}
-│ 🌐 𝐏𝐫𝐞́𝐟𝐢𝐱𝐞 𝐆𝐥𝐨𝐛𝐚𝐥𝐞 : ${globalPrefix}
-│ 💬 𝐏𝐫𝐞́𝐟𝐢𝐱𝐞 𝐝𝐮 𝐆𝐫𝐨𝐮𝐩𝐞 : ${threadPrefix}
-╰───────────────────────────────
-✨ 𝐁𝐨𝐭 : 𝐶𝐻𝑅𝐼𝑆𝑇𝑈𝑆_𝐵𝑂𝑇 ✨`
+`╔═💎══════════════════ 𝗜𝗡𝗙𝗢 𝗣𝗥𝗘𝗙𝗜𝗫𝗘 💎═╗
+║ 👤 Utilisateur : ${userName}
+║ 🌐 Préfixe Global : ${globalPrefix}
+║ 💬 Préfixe du Chat : ${threadPrefix}
+╚═══════════════════════════════════════╝
+✨ 𝗖𝗛𝗥𝗜𝗦𝗧𝗨𝗦_𝗕𝗢𝗧 te souhaite de 💥 styliser 💥 tes messages !`
       );
     }
   }
