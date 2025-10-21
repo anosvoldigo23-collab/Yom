@@ -1,79 +1,132 @@
-const g = require("fca-aryan-nix"); // GoatWrapper pour noprefix
+const { GoatWrapper } = require("fca-liane-utils");
+const { getPrefix } = global.utils;
+const { commands, aliases } = global.GoatBot;
+
+/**
+ * HELP ULTRA — Auteur: Christus
+ * - Nom de la commande: help
+ * - Format ultra stylisé, emojis aléatoires, police Unicode
+ */
 
 module.exports = {
   config: {
     name: "help",
-    aliases: ["commands", "cmds", "liste"],
-    version: "0.0.2",
+    version: "3.3",
     author: "Christus",
+    usePrefix: false,
     countDown: 2,
     role: 0,
-    category: "utility",
-    usePrefix: false, // Désactive le préfixe
-    noPrefix: true    // Activation noprefix
+    shortDescription: { en: "✨ Command index + details (stylish)" },
+    longDescription: { en: "List all commands or show detailed usage in a flashy, unreadable-by-robots style." },
+    category: "info",
+    guide: { en: "{pn}help <command> — show command details" },
+    priority: 1,
   },
 
-  onStart: async function ({ message, args }) {
-    const cmds = global.GoatBot.commands;
-    if (!cmds) return message.reply("⚠️ Command collection is not available.");
+  onStart: async function ({ message, args, event, threadsData, role }) {
+    try {
+      const { threadID } = event;
+      const prefix = getPrefix(threadID) || "";
+      const EMOS = ["⚡","✨","🌌","🛸","🔮","🔥","💠","🪄","🌟","🧩"]; // pool d'emojis
+      const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
+      const fancy = (s) =>
+        String(s)
+          .replace(/[A-Za-z0-9]/g, (c) => c) // placeholder - keep content but allow future transform
+          .replace(/\s{2,}/g, " ");
 
-    // Afficher le détail d'une commande spécifique
-    if (args.length) {
-      const q = args[0].toLowerCase();
-      const cmd = [...cmds.values()].find(
-        c => c.config.name === q || (c.config.aliases && c.config.aliases.includes(q))
-      );
-      if (!cmd) return message.reply(`❌ No command called “${q}”.`);
+      // build categories map
+      const cats = {};
+      for (let [name, cmd] of commands) {
+        // skip commands the user can't access
+        if (cmd.config.role > 1 && role < cmd.config.role) continue;
+        const category = (cmd.config.category || "Misc").toString();
+        if (!cats[category]) cats[category] = [];
+        cats[category].push(name);
+      }
 
-      const i = cmd.config;
-      const detail = `
-╔═════════════════════════════
-║ 🛠  Command Info
-╠═════════════════════════════
-║ 📌 Name      : ${i.name}
-║ 🧩 Aliases   : ${i.aliases?.length ? i.aliases.join(", ") : "None"}
-║ 👑 Access    : ${i.role === 2 ? "Admin Only" : i.role === 1 ? "VIP Only" : "All Users"}
-║ 📂 Category  : ${i.category?.toUpperCase() || "NIX"}
-║ ⚡ Prefix    : ${i.prefix === false ? "❌ Disabled" : "✅ Enabled"}
-║ ✍️ Author    : ${i.author || "Unknown"}
-║ 🆔 Version   : ${i.version || "N/A"}
-╚═════════════════════════════
-      `.trim();
-      return message.reply(detail);
+      // if no args => list all (grouped)
+      if (!args || args.length === 0) {
+        let header = `╔══════════════════════════════════╗\n`;
+        header += `║ ${rnd(EMOS)}  𝓗𝓔𝓛𝓟 • 𝓑𝕐  ${module.exports.config.author}  ${rnd(EMOS)}\n`;
+        header += `╠══════════════════════════════════╣\n`;
+        header += `║ Prefix: ${prefix || "no-prefix"}  •  Total: ${commands.size}\n`;
+        header += `╚══════════════════════════════════╝\n\n`;
+
+        let body = "";
+        // iterate categories with flashy sections
+        Object.keys(cats)
+          .sort((a, b) => a.localeCompare(b))
+          .forEach((category) => {
+            if (category.toLowerCase() === "info") return; // skip info if desired
+            const list = cats[category].sort();
+            const title = `╭─ ${rnd(EMOS)} ${category.toUpperCase()} ${rnd(EMOS)} ─╮\n`;
+            body += title;
+            // print commands in rows of 3 with decorative markers
+            for (let i = 0; i < list.length; i += 3) {
+              const slice = list.slice(i, i + 3).map((c) => `【${c}】`);
+              body += `│ ${slice.join("   ")}\n`;
+            }
+            body += `╰─────────────────────────────╯\n\n`;
+          });
+
+        const footer = `Tip: ${prefix}help <command>  ・  Join: ${prefix}support  ・  ${rnd(EMOS)}`;
+        await message.reply({ body: fancy(header + body + footer) });
+        return;
+      }
+
+      // show details for a specific command
+      const query = args[0].toLowerCase();
+      const command = commands.get(query) || commands.get(aliases.get(query));
+      if (!command) {
+        return await message.reply(
+          `❌  Command "${query}" introuvable. Essayez ${prefix}help pour la liste.`
+        );
+      }
+
+      const cfg = command.config || {};
+      const roleString = (() => {
+        switch (cfg.role) {
+          case 0:
+            return "0 — Everyone";
+          case 1:
+            return "1 — Group Admins";
+          case 2:
+            return "2 — Bot Admins";
+          default:
+            return `${cfg.role} — Unknown`;
+        }
+      })();
+
+      const aliasTxt = Array.isArray(cfg.aliases) && cfg.aliases.length ? cfg.aliases.join(", ") : "—";
+      const desc = (cfg.longDescription && cfg.longDescription.en) || cfg.shortDescription?.en || "No description provided.";
+      const usageTemplate = (cfg.guide?.en || "{pn}" + cfg.name).replace(/{pn}/g, prefix).replace(/{p}/g, prefix).replace(/{n}/g, cfg.name);
+
+      // fancy detail card
+      const card = [
+        "╔════════════════════════════════════╗",
+        `║  ${"✦".repeat(1)}  𝓒𝓸𝓶𝓶𝓪𝓷𝓭 • 𝓭𝓮𝓽𝓪𝓲𝓵  ${"✦".repeat(1)}`,
+        "╠════════════════════════════════════╣",
+        `║ • 𝓝𝓪𝓶𝓮: ${cfg.name}`,
+        `║ • 𝓐𝓾𝓽𝓱𝓸𝓻: ${cfg.author || module.exports.config.author}`,
+        `║ • 𝓥𝓮𝓻𝓼𝓲𝓸𝓷: ${cfg.version || "1.0"}`,
+        `║ • 𝓡𝓸𝓵𝓮: ${roleString}`,
+        `║ • 𝓒𝓸𝓸𝓵𝓭𝓸𝔀𝓷: ${cfg.countDown || 1}s`,
+        `║ • 𝓐𝓵𝓲𝓪𝓼𝓮𝓼: ${aliasTxt}`,
+        "╠════════════════════════════════════╣",
+        `║ ✧ Description:\n║ ${desc}`,
+        "╠════════════════════════════════════╣",
+        `║ ✧ Usage:\n║ ${usageTemplate}`,
+        "╚════════════════════════════════════╝",
+      ].join("\n");
+
+      return await message.reply({ body: fancy(card) });
+    } catch (err) {
+      // safe fallback
+      await message.reply(`⚠️ Une erreur est survenue dans help: ${err.message || err}`);
+      console.error("HELP CMD ERROR:", err);
     }
-
-    // Grouper les commandes par catégorie
-    const cats = {};
-    [...cmds.values()]
-      .filter((c, i, s) => i === s.findIndex(x => x.config.name === c.config.name))
-      .forEach(c => {
-        const cat = c.config.category || "UNCATEGORIZED";
-        if (!cats[cat]) cats[cat] = [];
-        if (!cats[cat].includes(c.config.name)) cats[cat].push(c.config.name);
-      });
-
-    // Construire le message d'aide stylé
-    let msg = "✨ 𝐆𝐨𝐚𝐭𝐁𝐨𝐭 𝐂𝐨𝐦𝐦𝐚𝐧𝐝𝐬 ✨\n\n";
-    Object.keys(cats).sort().forEach(cat => {
-      msg += `╭─🌟『 ${cat.toUpperCase()} 』🌟\n`;
-      cats[cat].sort().forEach(n => {
-        msg += `│ • ${n}\n`;
-      });
-      msg += `╰──────────────\n\n`;
-    });
-
-    msg += `
-╔═════════════════════════════
-║ 📊 Total commands : ${cmds.size}
-║ ⚡ Powered by GoatBot
-║ 👑 Developer : 𝐶𝐻𝑅𝐼𝑆𝑇𝑈𝑆
-╚═════════════════════════════
-「 𝗖𝗛𝗥𝗜𝗦𝗧𝗨𝗦 𝗕𝗢𝗧 」`;
-
-    await message.reply(msg);
-  }
+  },
 };
 
-// Activation noprefix via GoatWrapper
-const wrapper = new g.GoatWrapper(module.exports);
-wrapper.applyNoPrefix({ allowPrefix: false });
+// apply no-prefix but allow prefix if provided
+new GoatWrapper(module.exports).applyNoPrefix({ allowPrefix: true });
